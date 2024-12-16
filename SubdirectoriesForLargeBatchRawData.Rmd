@@ -1,0 +1,58 @@
+---
+title: "SubdirectoriesForLargeBatchRawData"
+output: html_document
+date: "2024-12-10"
+---
+
+
+# README
+
+The objective of this workflow is to reorganize the folder structure where raw bat acoustic files are stored that were collected in the field and stored on the research P: drive. For batches of data greater than approximately 5000 files, I will move the files into new folders as batches of approximately 5000 files so that these will be more manageable in downstream analyses. 
+
+
+### Set up work space and directories 
+```{r}
+
+library(data.table)
+library(tidyverse)
+library(beepr)
+library(lubridate)
+library(purrr)
+library(janitor)
+library(renv)
+library(stringr)
+library(beepr)
+
+
+getwd()
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
+
+## Setup output directory 
+#dir.create("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/Outputs")
+
+output <- "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/Outputs"
+
+file.name <- "SubdirectoriesForLargeBatchRawData"
+
+todays_date <- Sys.Date()
+ 
+dir.name <- str_c(output,"/", file.name, "_", todays_date)
+dir.name
+ 
+output_today <- dir.name
+output_today
+
+dir.create(output_today)
+output_today
+
+#"C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/Outputs/SubdirectoriesForLargeBatchRawData_2024-12-10"
+
+```
+
+```{r}
+
+```
+
+
+
+
