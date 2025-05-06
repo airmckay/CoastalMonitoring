@@ -58,6 +58,7 @@ output_today
 df <- read_excel("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Locations (photos, GPS)/Reports and overview/2025/CoastalMonitoring_Overview_2025.xlsx") 
 # 78 obs 25
 
+df$ProtectedAreaID <- gsub("NA", "No", df$ProtectedAreaID)
 
 ```
 
@@ -71,7 +72,11 @@ df1 <- df %>% mutate(SiteName = factor(SiteName),
                      'DistanceToWater (m)' = 
                        `Distance from detector to closest water body (m)`,
                      'DistanceToCoast (m)' = as.numeric(`DistanceToCoast (m)`)) %>% 
-  dplyr::select(-`Distance from detector to closest water body (m)`)
+  dplyr::select(-`Distance from detector to closest water body (m)`) %>% 
+  mutate(
+    Protected = factor(case_when(
+    ProtectedAreaID == "No" ~ "No", 
+    TRUE ~ "Yes"))) 
 
 ## Spatial data
 
@@ -79,12 +84,18 @@ df2 <- st_as_sf(df1, coords=c("Longitude", "Latitude"), crs = "+proj=latlong +el
 
 crs(df2$geometry)
 
-# plot(boxdf2)
 
-mapview(df2)
 
+## All sites 
+mapview(df2, layer.name = 'Bat acoustic monitoring sites 2025')
+
+## Agder only 
 agder <- df2 %>% dplyr::filter(County == "Agder") 
-mapview(agder)                    
+mapview(agder, zcol = "Protected", col.regions=c("gray", "orange"), legend = FALSE, layer.name = 'Bat acoustic monitoring in Agder')    
+
+## Rogaland only 
+rogaland <- df2 %>% dplyr::filter(County == "Rogaland") 
+mapview(rogaland, zcol = "Protected", col.regions=c("gray", "orange"), legend = FALSE, layer.name = 'Bat acoustic monitoring in Rogaland') 
                      
 
 ```
