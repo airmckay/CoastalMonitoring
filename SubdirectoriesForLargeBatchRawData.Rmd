@@ -49,7 +49,78 @@ output_today
 
 ```
 
+
+
 ```{r}
+## Try fixing metadata in id.csv for processed acoustic data
+
+
+#### CM-11 ####
+
+## 09.08.2024
+id <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2024/CM-11/WAV/KPRO_V1_09.08.2024/id.csv")
+id1 <- id
+
+head(id1$OUTDIR)
+#  "P:\\SW_CoastalMonitoring\\Data_collection_2024\\CM-11\\WAV\\KPR_V1_09.08.20
+id1$OUTDIR <- gsub("KPR_V1", "KPRO_V1",id1$OUTDIR)
+
+head(id1$OUTDIR)
+# "P:\\SW_CoastalMonitoring\\Data_collection_2024\\CM-11\\WAV\\KPRO_V1_09.08.2024"
+
+# write.csv(id1, "P:/SW_CoastalMonitoring/Data_collection_2024/CM-11/WAV/KPRO_V1_09.08.2024/id.csv")
+
+## 31.08.2024
+id <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2024/CM-11/WAV/KPRO_V1_31.08.2024/id0.csv")
+id1 <- id
+
+head(id1$OUTDIR)
+#  "P:\\SW_CoastalMonitoring\\Data_collection_2024\\CM-11\\WAV\\KPRO_V1_31.08.2024"
+## This looks good- not sure why there was a id0 here 
+## Will make a copy of a id.csv
+
+# write.csv(id1, "P:\\SW_CoastalMonitoring\\Data_collection_2024\\CM-11\\WAV\\KPRO_V1_31.08.2024/id.csv")
+
+
+#### CM-22 ####
+## OBS! I forgot to use the  "row.names = FALSE" command when writing csvs for this batch and now there is an annoying index column in the original id0.csv
+id <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2024/CM-22/WAV/KPRO_V1/id.csv")
+
+
+# Save a copy of the original csv file
+# write.csv(id,"P:/SW_CoastalMonitoring/Data_collection_2024/CM-22/WAV/KPRO_V1/id0.csv", row.names = FALSE)
+id1 <- id
+
+head(id1$OUTDIR)
+#  "D:\\CM-22\\WAV\\KPRO_V1"
+
+## Correct the output directory
+id1$OUTDIR <- "P:\\SW_CoastalMonitoring\\Data_collection_2024\\CM-22\\WAV\\KPRO_V1"
+
+head(id1$OUTDIR)
+# "P:\\SW_CoastalMonitoring\\Data_collection_2024\\CM-22\\WAV\\KPRO_V1"
+
+# Create new id.csv with correct OUTDIR
+#write.csv(id1, "P:/SW_CoastalMonitoring/Data_collection_2024/CM-22/WAV/KPRO_V1/id.csv", row.names = FALSE)
+
+
+#### CM-28 ####
+id <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2024/CM-28/WAV/KPRO_V1/id01.csv")
+# Save a copy of the original csv file
+# write.csv(id,"P:/SW_CoastalMonitoring/Data_collection_2024/CM-28/WAV/KPRO_V1/id0.csv", row.names = FALSE)
+id1 <- id
+
+head(id1$OUTDIR)
+#  "D:\\CM-28\\WAV\\KPRO_V1" 
+
+## Correct the output directory
+id1$OUTDIR <- "P:\\SW_CoastalMonitoring\\Data_collection_2024\\CM-28\\WAV\\KPRO_V1"
+
+head(id1$OUTDIR)
+# "P:\\SW_CoastalMonitoring\\Data_collection_2024\\CM-28\\WAV\\KPRO_V1"
+
+# Create new id.csv with correct OUTDIR
+# write.csv(id1, "P:/SW_CoastalMonitoring/Data_collection_2024/CM-28/WAV/KPRO_V1/id.csv", row.names = FALSE)
 
 ```
 

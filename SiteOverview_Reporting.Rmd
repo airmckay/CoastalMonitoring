@@ -1,0 +1,91 @@
+---
+title: "SiteOverview_Reporting"
+output: html_document
+date: "2025-05-06"
+---
+
+
+```{r}
+#### Load libraries ####
+library(data.table)
+library(tidyverse)
+library(beepr)
+library(lubridate)
+library(purrr)
+library(renv)
+library(stringr)
+library(janitor)
+library(readr)
+library(readxl)
+library(raster)
+library(rgdal)
+library(rgeos)
+library(mapview)
+library(sf)
+library(sp)
+library(maps)
+library(leaflet)
+library(randomcoloR)
+library(wesanderson)
+library(leaflegend)
+library(osmdata)
+library(MetBrewer)
+library(colorBlindness)
+library(colorblindcheck)
+library(ggmap)
+library(maptools)
+library(spatstat)
+
+## Set up output directory
+
+output <-"C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed" # where you want to save your data
+
+file.name <- "SiteOverview_Reporting"
+
+todays_date <- Sys.Date()
+ 
+
+dir.name <- str_c(output,"/", file.name, "_", todays_date)
+dir.name
+ 
+output_today <- dir.name
+output_today
+
+dir.create(output_today)
+output_today
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/SiteOverview_Reporting_2025-05-06"
+
+df <- read_excel("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Locations (photos, GPS)/Reports and overview/2025/CoastalMonitoring_Overview_2025.xlsx") 
+# 78 obs 25
+
+
+```
+
+
+## Tidying 
+```{r}
+
+df1 <- df %>% mutate(SiteName = factor(SiteName), 
+                     County = factor(County), 
+                     Locality = factor(Locality), 
+                     'DistanceToWater (m)' = 
+                       `Distance from detector to closest water body (m)`,
+                     'DistanceToCoast (m)' = as.numeric(`DistanceToCoast (m)`)) %>% 
+  dplyr::select(-`Distance from detector to closest water body (m)`)
+
+## Spatial data
+
+df2 <- st_as_sf(df1, coords=c("Longitude", "Latitude"), crs = "+proj=latlong +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+
+crs(df2$geometry)
+
+# plot(boxdf2)
+
+mapview(df2)
+
+agder <- df2 %>% dplyr::filter(County == "Agder") 
+mapview(agder)                    
+                     
+
+```
+
