@@ -104,12 +104,17 @@ df1 <- input %>%
 dim(df1)
 # 769943     10
 
+auto_overview <- df1 %>% 
+  group_by(autoid) %>%
+  summarise(percentage = n() / nrow(df1) * 100) %>% 
+  mutate(percentage = as.integer(percentage)) 
+## 13% noise
+
 summary(df1)
 
 summary(df1$autoid)
 # BARBAR EPTNIL MYOBRA MYODAU MYOMYS MYONAT NYCNOC 
 #   2918 447284    142   4079    375    127   2143 
-
 #   NoID  Noise PIPNAT PIPPYG PLEAUR VESMUR 
 #  38473 174248   6805  89365   2922   1062
 
@@ -196,18 +201,20 @@ ggplot(df1) +
 
 
 ## Remove noise and take another look 
-
 ```{r}
 levels(df1$autoid)
 summary(df1$autoid)
-# 65226     noise files that we will remove. 
+# 174248 noise files that we will remove. 
 
 df2 <- df1 %>% dplyr::filter(autoid != "Noise") %>% droplevels()
-# 16520 obs of 13 vars 
-# 81746 - 65226 = 16520 - good! 
+dim(df2)
+# 595695  obs of  10 vars 
+# 769943-174248 = 595695 - good! 
+
+summary(df2$autoid)
 
 ## Simple dataset for easily making exploratory figures 
-#write.csv(df2, file = file.path(output_today, "BenedikteData_AutoId_NoNoise_SimpleColumns.csv"))
+#write.csv(df2, file = file.path(output_today, "JuditheData_AutoId_NoNoise_SimpleColumns.csv"))
 
 ## Now take a look on what the recording activity looks like 
 ggplot(df2) + 
@@ -243,30 +250,162 @@ ggplot(df2 %>% filter(autoid == "PIPNAT") %>% droplevels()) +
 table(df1$site, df1$autoid)
 # Randomly select 500 Noise files from each site for her to validate
 
-noise_sub <- df1 %>% 
+
+df1$month <-  as.factor(format(df1$DATE, "%B") ) # Full month name (e.g., "January")
+# summary(df1$month)
+#    August      July      June   October September 
+#    333835    238957     52375     10162    134614 
+
+table(df1$site, df1$month)
+  #       August  July  June October September
+  # CM-04  95936 35917 21135    1326     24931
+  # CM-05  24437 25360 14770       0     22091
+  # CM-06  75074 28628 12514    7334     37926
+  # CM-21  51280 52504  3956     365     28960
+  # CM-23  41735 36901     0     177     10989
+  # CM-42  45373 59647     0     960      9717
+
+## The only months that we have recordings for all sites are July, August, and September. 
+
+DF <- df1 %>% 
+  dplyr::filter(month %in% c("July", "August", "September")) %>% 
+  droplevels()
+# 707406 obs 11 vars 
+
+## Now with all BBAR, PAUR, NNOC, VMUR, PNAT and Myotis species combined 
+levels(df1$autoid)
+
+sub1 <- DF %>% filter(
+  autoid %in% c(
+    "BARBAR", "PLEAUR", "VESMUR", "NYCNOC", 
+    "MYOBRA", "MYODAU", "MYOMYS", "MYONAT",
+    "PIPNAT"))
+# 19179 obs of 11 vars 
+
+## Overview of soprano pip autoid recordings
+ppyg <- DF %>% 
+  dplyr::filter(autoid %in% c("PIPPYG")) %>% 
+  dplyr::filter(month %in% c("July", "August", "September")) %>%
+  droplevels()
+
+ggplot(ppyg) + 
+  geom_bar(aes(x = month), stat = "count", fill = "orange") + 
+  facet_wrap(~site) + ggtitle("Soprano pips autoid")
+
+## Overview of northern bat autoid recordings
+epni <- DF %>% 
+  dplyr::filter(autoid %in% c("EPTNIL")) %>% 
+  dplyr::filter(month %in% c("July", "August", "September")) %>%
+  droplevels() 
+
+ggplot(epni) + 
+  geom_bar(aes(x = month), stat = "count", fill = "turquoise") +
+  facet_wrap(~site) + ggtitle("Northern bats autoid")
+
+# potential subset of northern bats 
+sub_EPTNIL <- DF %>% 
+  dplyr::filter(autoid == "EPTNIL") %>%
+  droplevels() %>%
+  group_by(site, month) %>% slice_sample(n = 400) %>%
+  ungroup() %>%
+  arrange(site, month)
+dim(sub_EPTNIL)
+# 7200   11
+
+# potential subset of soprano pips 
+sub_PIPPYG <- DF %>% 
+  dplyr::filter(autoid == "PIPPYG") %>%
+  droplevels() %>%
+  group_by(site, month) %>% slice_sample(n = 200) %>%
+  ungroup() %>%
+  arrange(site, month)
+dim(sub_PIPPYG)
+# 3600   11    
+
+## NoID subset 
+noid_sub <- DF %>% 
+  filter(autoid == "NoID") %>% 
+  droplevels() %>% 
+  group_by(site, month) %>% slice_sample(n=300) %>% 
+  ungroup() 
+dim(noid_sub)
+# 5400   11
+
+## Noise subset 
+noise_sub <- DF %>% 
   filter(autoid == "Noise") %>% 
   droplevels() %>% 
-  group_by(site) %>% slice_sample(n=500) %>% 
+  group_by(site, month) %>% slice_sample(n=100) %>% 
   ungroup() 
 dim(noise_sub)
-# 3000 13 
+# 1800   11
 
-summary(noise_sub$site)
-# CM-01 CM-02 CM-46 GI-01 GI-03 UT-01 
-#   500   500   500   500   500   500 
 
-## Tada!
+# How many observations all together? 
+dim(sub1) + dim(sub_PIPPYG) + 
+dim(sub_EPTNIL) + dim(noid_sub) + dim(noise_sub) 
+# 37179 observations
 
-## Now add these back to Benedikte main dataset 
 
-df3 <- merge(df2, noise_sub, all = TRUE)
+## Now add together so you can re-create the file paths 
+pt1 <- merge(sub1, sub_PIPPYG, all = TRUE)
+# 26379 obs of 11 vars 
+dim(sub1) + dim(sub_PIPPYG) # checks out 
+
+pt2 <- merge(pt1, sub_EPTNIL, all = TRUE)
+# 29979 obs of 11 vars 
+dim(pt1) + dim(sub_EPTNIL) # checks out 
+
+pt3 <- merge(pt2, noid_sub, all = TRUE) 
+# 35379 obs of 11 vars
+dim(pt2) + dim(noid_sub) # checks out 
+
+pt4 <- merge(pt3, noise_sub, all = TRUE) 
+dim(pt3) + dim(noise_sub) # checks out! 
+
+dim(pt4)
+
+summary(pt4)
+duplicates <- pt4 %>%
+  group_by(filename) %>%
+  filter(n() > 1) %>%
+  ungroup()
+
+print(duplicates)
+summary(pt4$autoid)
+# BARBAR EPTNIL MYOBRA MYODAU MYOMYS MYONAT 
+#   2436   3600    142   3929    374    123 
+# NYCNOC   NoID  Noise PIPNAT PIPPYG PLEAUR 
+#   2052   5400   1800   6239   7200   2897 
+# VESMUR 
+#    987 
+
+summary(pt4$site)
+# CM-04 CM-05 CM-06 CM-21 CM-23 CM-42 
+#  3732  3961  8022  7878  4981  8605 
+
+table(pt4$site, pt4$month)
+  #       August July September
+  # CM-04   1382 1074      1276
+  # CM-05   1294 1250      1417
+  # CM-06   3004 1886      3132
+  # CM-21   2427 1563      3888
+  # CM-23   1662 1462      1857
+  # CM-42   4556 2169      1880
 
 # The numbers of rows add up! 
+## Explore what this looks like across the sites and months 
+ggplot(pt4) + 
+  geom_bar(aes(x=month, fill = autoid), stat = "count") + 
+  facet_wrap(~site) + 
+  scale_fill_manual(name = "AutoID", 
+  values = moma.colors("Warhol", n = 13)) + 
+  ylab("N recordings per month") + 
+  xlab("Site") +
+  theme_minimal(base_size = 16) + 
+  ggtitle("2024") 
 
-# write.csv(df3, file = file.path(output_today, "CompleteDatasetBenedikte_wNoiseSubset_SimpleColumnsOnly.csv"))
-
-summary(df3$site)
-# CM-01 CM-02 CM-46 GI-01 GI-03 UT-01 
-#  3373   576  5050  7492  1862  1167 
+#write.csv(pt4, file = file.path(output_today, "example_JudithSubset_attempt1.csv"))
+# 12.08.2025  
 
 ```
