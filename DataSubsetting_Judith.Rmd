@@ -1,0 +1,272 @@
+---
+title: "DataSubsetting_Judith"
+output: html_document
+date: "2025-08-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Prepare and overview automatically classified bat acoustic data for Judith Feldhaus's Masters thesis. 
+
+## Import the full dataset from Maris of all the 2024 CM observations combined and subset for Judith's sites
+
+## THen try to further subset based on the measures that Maris and I agreed on 
+
+Check all categories: 
+VMUR, NNOC, PAUR, BBAR
+ 
+Check 50% 
+Myotis all together
+ 
+Check 10%
+PPYG, PNAT
+ 
+Check 5% 
+EPNI
+ 
+NoID and Noise subset - block number per site. Will determine exact value later.
+
+Subset by site by month within year
+ 
+Aim for approximately 12500 recordings per site
+ 
+6 sites in total 
+Sites: CM-04, CM-06, CM-05, CM-23, CM-21, CM-42
+ 
+
+
+## Prepare workspace
+```{r}
+library(data.table)
+library(tidyverse)
+library(beepr)
+library(lubridate)
+library(purrr)
+library(janitor)
+library(renv)
+library(stringr)
+library(beepr)
+library(randomcoloR)
+library(wesanderson)
+library(leaflegend)
+library(osmdata)
+library(MetBrewer)
+library(colorBlindness)
+library(colorblindcheck)
+library(MoMaColors)
+
+getwd()
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
+
+## Setup output directory 
+output <-"C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed" # where you want to save your data
+
+file.name <- "OverviewProcessedBatData_Judith2025"
+
+todays_date <- Sys.Date()
+ 
+dir.name <- str_c(output,"/", file.name, "_", todays_date)
+dir.name
+ 
+output_today <- dir.name
+output_today
+
+dir.create(output_today)
+output_today
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/OverviewProcessedBatData_Judith2025_2025-08-12"
+
+```
+
+## Subset and tidy the dataset for only Judith's sites
+Sites: CM-04, CM-06, CM-05, CM-23, CM-21, CM-42
+
+```{r}
+input <- read_csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/2024 data/cm_all.csv")
+
+dim(input)
+# 3554546      12
+
+## Housekeeping
+df1 <- input %>% 
+  mutate(autoid = factor(autoid), 
+         site = factor(Site)) %>% 
+  dplyr::select(FOLDER, filename, 
+                DATE, TIME, HOUR,
+                DATE.12, TIME.12, HOUR.12,
+                autoid, site
+                ) %>% 
+  dplyr::filter(site %in% c("CM-04", "CM-06", 
+                            "CM-05", "CM-23",
+                            "CM-21", "CM-42"
+                            )) %>% droplevels()
+dim(df1)
+# 769943     10
+
+summary(df1)
+
+summary(df1$autoid)
+# BARBAR EPTNIL MYOBRA MYODAU MYOMYS MYONAT NYCNOC 
+#   2918 447284    142   4079    375    127   2143 
+
+#   NoID  Noise PIPNAT PIPPYG PLEAUR VESMUR 
+#  38473 174248   6805  89365   2922   1062
+
+### #write.csv(df1, file = file.path(output_today, "JudithSites_TotalAutoID.csv"))
+# 12.08.2025
+
+#What is the percentage of noise recorded across sites?
+cm04 <- df1 %>% filter(site == "CM-04")  
+cm06 <- df1 %>% filter(site == "CM-06")  
+cm05 <- df1 %>% filter(site == "CM-05")  
+cm23 <- df1 %>% filter(site == "CM-23")  
+cm21 <- df1 %>% filter(site == "CM-21")  
+cm42 <- df1 %>% filter(site == "CM-42")  
+  
+noiserat_cm04 <- cm04 %>% 
+  group_by(autoid) %>%
+  summarise(percentage = n() / nrow(cm04) * 100) %>% 
+  mutate(percentage = as.integer(percentage)) 
+## 13% noise
+
+noiserat_cm06 <- cm06 %>% 
+  group_by(autoid) %>%
+  summarise(percentage = n() / nrow(cm06) * 100) %>% 
+  mutate(percentage = as.integer(percentage)) 
+## 27% noise
+
+noiserat_cm05 <- cm05 %>% 
+  group_by(autoid) %>%
+  summarise(percentage = n() / nrow(cm05) * 100) %>% 
+  mutate(percentage = as.integer(percentage)) 
+## 45% noise
+
+noiserat_cm23 <- cm23 %>% 
+  group_by(autoid) %>%
+  summarise(percentage = n() / nrow(cm23) * 100) %>% 
+  mutate(percentage = as.integer(percentage)) 
+## 96% noise
+
+noiserat_cm21 <- cm21 %>% 
+  group_by(autoid) %>%
+  summarise(percentage = n() / nrow(cm21) * 100) %>% 
+  mutate(percentage = as.integer(percentage)) 
+## 21% noise
+
+noiserat_cm42 <- cm42 %>% 
+  group_by(autoid) %>%
+  summarise(percentage = n() / nrow(cm42) * 100) %>% 
+  mutate(percentage = as.integer(percentage)) 
+## 14% noise
+
+
+library(MoMAColors)
+
+## Make a figure illustrating this 
+barnoise <- ggplot(df1) + 
+  geom_bar(aes(x= site, fill = autoid), position = "fill") +
+  scale_fill_manual(name = "AutoID", values = moma.colors("Warhol", n = 13)) + 
+  ylab("Proportion of recordings") + 
+  xlab("Site") +
+  theme(text = element_text(size = 25)) 
+barnoise
+
+ggsave(path = output_today, filename = "AllSites_Judith_Noise.tiff", width = 23, height = 14, device='tiff', dpi=300) 
+
+## Look at overall recording period 
+windows()
+ggplot(df1) + 
+  geom_point(aes(x = DATE.12, y = site), 
+             color = "orange", alpha = 0.5, size = 3) +
+    xlab("Date in season") + ylab(" ") +
+  ggtitle("Recording activity") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        text = element_text(size = 25),
+        axis.line = element_line(colour = "black"))
+
+#ggsave(path = output_today, filename = "BasicRecordingOverview.tiff", width = 23, height = 14, device='tiff', dpi=300) 
+
+# My first instinct is that most recording across all sites happened between late July and early September
+
+
+```
+
+
+## Remove noise and take another look 
+
+```{r}
+levels(df1$autoid)
+summary(df1$autoid)
+# 65226     noise files that we will remove. 
+
+df2 <- df1 %>% dplyr::filter(autoid != "Noise") %>% droplevels()
+# 16520 obs of 13 vars 
+# 81746 - 65226 = 16520 - good! 
+
+## Simple dataset for easily making exploratory figures 
+#write.csv(df2, file = file.path(output_today, "BenedikteData_AutoId_NoNoise_SimpleColumns.csv"))
+
+## Now take a look on what the recording activity looks like 
+ggplot(df2) + 
+  geom_point(aes(x = DATE.12, y = site), 
+             color = "turquoise", alpha = 0.5, size = 3) +
+    xlab("Date in season") + ylab(" ") +
+  ggtitle("Recording activity - Noise files removed") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        text = element_text(size = 25),
+        axis.line = element_line(colour = "black"))
+
+#ggsave(path = output_today, filename = "BasicRecordingOverview_noNoise.tiff", width = 23, height = 14, device='tiff', dpi=300) 
+
+
+## And just because I am curious 
+ggplot(df2 %>% filter(autoid == "PIPNAT") %>% droplevels()) + 
+  geom_point(aes(x = DATE.12, y = site), 
+             color = "coral", alpha = 0.5, size = 3) +
+    xlab("Date in season") + ylab(" ") +
+  ggtitle("Recording activity - auotid Nathusius Pip") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        text = element_text(size = 25),
+        axis.line = element_line(colour = "black"))
+
+#ggsave(path = output_today, filename = "BasicRecordingOverview_PNATonly.tiff", width = 23, height = 14, device='tiff', dpi=300) 
+
+### Now add a subset of random noise files from reach site for Benedikte to also check 
+
+table(df1$site, df1$autoid)
+# Randomly select 500 Noise files from each site for her to validate
+
+noise_sub <- df1 %>% 
+  filter(autoid == "Noise") %>% 
+  droplevels() %>% 
+  group_by(site) %>% slice_sample(n=500) %>% 
+  ungroup() 
+dim(noise_sub)
+# 3000 13 
+
+summary(noise_sub$site)
+# CM-01 CM-02 CM-46 GI-01 GI-03 UT-01 
+#   500   500   500   500   500   500 
+
+## Tada!
+
+## Now add these back to Benedikte main dataset 
+
+df3 <- merge(df2, noise_sub, all = TRUE)
+
+# The numbers of rows add up! 
+
+# write.csv(df3, file = file.path(output_today, "CompleteDatasetBenedikte_wNoiseSubset_SimpleColumnsOnly.csv"))
+
+summary(df3$site)
+# CM-01 CM-02 CM-46 GI-01 GI-03 UT-01 
+#  3373   576  5050  7492  1862  1167 
+
+```
