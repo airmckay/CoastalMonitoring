@@ -1,0 +1,255 @@
+---
+title: "FullOverview2024"
+output: html_document
+date: "2025-09-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The goal
+
+Using csv file outputs collected by Maris, I will re-combine all autoid.csvs for all sites from the 2024 field season. 
+
+
+## Prepare workspace
+```{r}
+library(data.table)
+library(tidyverse)
+library(beepr)
+library(lubridate)
+library(purrr)
+library(janitor)
+library(renv)
+library(stringr)
+library(beepr)
+library(randomcoloR)
+library(wesanderson)
+library(leaflegend)
+library(osmdata)
+library(MetBrewer)
+library(colorBlindness)
+library(colorblindcheck)
+#devtools::install_github("BlakeRMills/MoMAColors")
+library(MoMAColors)
+
+getwd()
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
+
+## Setup output directory 
+output <-"C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed" # where you want to save your data
+
+file.name <- "2024CombineCSVs"
+
+todays_date <- Sys.Date()
+ 
+dir.name <- str_c(output,"/", file.name, "_", todays_date)
+dir.name
+ 
+output_today <- dir.name
+output_today
+
+dir.create(output_today)
+output_today
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/2024CombineCSVs_2025-09-16"
+
+```
+
+## Combine CSVs
+## For now, just work with Judith's sites 
+Sites: CM-04, CM-05, CM-06, CM-21, CM-23, CM-42
+
+```{r}
+input04 <-"P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV" 
+
+input05 <-"P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV"
+
+input06 <-"P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV"
+
+input21 <-"P:/SW_CoastalMonitoring/Data_collection_2024/CM-21/WAV"
+
+input23 <-"P:/SW_CoastalMonitoring/Data_collection_2024/CM-23/WAV"
+
+input42 <-"P:/SW_CoastalMonitoring/Data_collection_2024/CM-42/WAV"
+
+
+### Pull the id.csv files 
+# CM04 <- list.files(path=input04, pattern="id.csv", recursive = TRUE)
+# CM04
+# backup <- CM04
+
+CM04 <- read.csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Maris/IDfiles 2024/CM-04/all_id.csv")
+dim(CM04)
+# 179245     44
+CM04$site <- "CM-04"
+
+CM05 <- read.csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Maris/IDfiles 2024/CM-05/all_id.csv")
+dim(CM05)
+# 86658    44
+CM05$site <- "CM-05"
+
+CM06 <- read.csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Maris/IDfiles 2024/CM-06/all_id.csv")
+dim(CM06)
+# 161476     44
+CM06$site <- "CM-06"
+
+CM21 <- read.csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Maris/IDfiles 2024/CM-21/all_id.csv")
+dim(CM21)
+# 137065     44
+CM21$site <- "CM-21"
+
+CM23 <- read.csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Maris/IDfiles 2024/CM-23/all_id.csv")
+dim(CM23)
+# 89802     44
+CM23$site <- "CM-23"
+
+CM42 <- read.csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Maris/IDfiles 2024/CM-42/all_id.csv")
+dim(CM42)
+# 115697     44
+CM42$site <- "CM-42"
+
+
+## Check the column names 
+names(CM04)
+names(CM05)
+names(CM06)
+names(CM21)
+names(CM23)
+names(CM42)
+
+```
+
+```{r}
+### Troubleshooting some file name mysteries 
+## Check the NA file names... 
+# complete_in_subset <- as.data.frame(complete.cases(CM04[, "OUT.FILE.FS"]))
+# 
+# n_occur <- data.frame(table(CM04$OUT.FILE.FS))
+#  test <- n_occur[n_occur$Freq > 1,] # 117 dups!
+#  test 
+# 
+# CM04$AUTO.ID. <- factor(CM04$AUTO.ID.)
+# 
+# summary(CM04$AUTO.ID.)
+# 
+# maybe <- CM04 %>% filter(DURATION >= 0.3) 
+# 
+# #
+# 
+# summary(maybe$AUTO.ID.)
+# 
+# n_occur <- data.frame(table(maybe$OUT.FILE.FS))
+#  test <- n_occur[n_occur$Freq > 1,] 
+#  test 
+#  
+# whatsthis <- maybe %>% filter(OUT.FILE.FS %in% 
+#                                  c("2LU00815_20240630_000413_000.wav",
+#                                    "2LU00815_20240702_012539_000.wav",
+#                                    "2LU00815_20240719_021917_000.wav")) 
+# 
+# ## There are two problems here. (1) Some of the OUT.FILE.FS are NA. Many have a Noise AUTO.ID but some are assigned to bat taxa. There is no easy way to recover these files so we need to drop them. (2) There are some Noise snippets at the end of some files that have already been defined as some other AutoID passes. It looks like in these cases the IN.FILE and OUT.FILE are different but there are duplicate OUT.FILEs. I am going to try and combine the IN.FILE and OUT.FILE to make a unique file name for each observation. 
+# 
+# ## First drop any NA OUT.FILE.FS
+# test1 <- CM04[!is.na(CM04$OUT.FILE.FS), ]
+# # 179245-179238
+# # 7 rows are removed. 
+# 
+# 
+# n_occur <- data.frame(table(test1$OUT.FILE.FS))
+#  test <- n_occur[n_occur$Freq > 1,] 
+#  test 
+#  
+# badnews <- test$Var1 %>% droplevels() 
+# 
+# badnews
+# 
+# test2 <- CM04 %>% filter(OUT.FILE.FS %in% badnews)
+# test3 <- test2 %>% filter(AUTO.ID. != "Noise") %>% droplevels()
+# 117*2
+
+## Alright so we drop any duplicates that are Noise. 
+## That sorts it! 
+```
+
+## Combine the sites together
+
+```{r}
+temp <- merge(CM04, CM05, all = TRUE) 
+dim(CM04) + dim(CM05)
+dim(temp) # checks out
+
+temp1 <- merge(temp, CM06, all = TRUE) 
+dim(temp) + dim(CM06)
+dim(temp1) # checks out
+
+temp2 <- merge(temp1, CM21, all = TRUE) 
+dim(temp1) + dim(CM21)
+dim(temp2) # checks out
+
+temp3 <- merge(temp2, CM23, all = TRUE) 
+dim(temp2) + dim(CM23)
+dim(temp3) # checks out
+
+temp4 <- merge(temp3, CM42, all = TRUE) 
+dim(temp3) + dim(CM42)
+dim(temp4) # checks out
+# 769943     45
+
+
+## We do some tidying from here
+temp5 <- temp4[!is.na(temp4$OUT.FILE.FS), ]
+dim(temp5)
+# 769808     45
+# 769943-769808
+
+# 135 files removed that had no file name. I don't know why this error has occurred but appears to be some sort of Kaleidoscope processing error. 
+
+## Now find the duplicates with Noise "tag" files that we can also remove. 
+
+## First we need a unique file name column 
+
+temp5$unique.file <- paste0(temp5$IN.FILE, "_", temp5$OUT.FILE.FS)
+
+n_occur <- data.frame(table(temp5$OUT.FILE.FS))
+ test <- n_occur[n_occur$Freq > 1,]
+ test
+ #399 duplicates
+
+badnews <- test$Var1 %>% droplevels()
+badnews
+
+badnews1 <- temp5 %>% filter(OUT.FILE.FS %in% badnews) # 798 obs (399 x 2) good. 
+badnews2 <- badnews1 %>% filter(AUTO.ID. == "Noise") %>% droplevels()
+badnews3 <- badnews2$unique.file #399 files to be dropped 
+
+temp6 <- temp5 %>% filter(!unique.file %in% badnews3)
+dim(temp5)-dim(temp6) 
+# 399   0 - nice! 
+
+df <- temp6 %>% mutate(site = factor(site),
+                       AUTO.ID. = factor(AUTO.ID.))
+
+summary(df)
+dim(df)
+
+summary(df$site)
+#  CM-04  CM-05  CM-06  CM-21  CM-23  CM-42 
+# 179121  86610 161323 136986  89746 115623
+
+summary(df$AUTO.ID.)
+# BARBAR EPTNIL MYOBRA MYODAU MYOMYS MYONAT NYCNOC   NoID  Noise PIPNAT PIPPYG PLEAUR VESMUR 
+#   2918 447274    142   4079    375    127   2143  38471 173744   6805  89347   2922   1062
+
+## check for duplicate out file names 
+
+n_occur <- data.frame(table(df$OUT.FILE.FS))
+ dups <- n_occur[n_occur$Freq > 1,]
+ dups # none - good! No NAs either. 
+
+## Now export this so we can use it to subset Judith's dataset
+write.csv(df, file = file.path(output_today, "JudithSites2024_all.csv"))
+output_today
+
+```
+
