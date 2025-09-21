@@ -55,7 +55,7 @@ library(osmdata)
 library(MetBrewer)
 library(colorBlindness)
 library(colorblindcheck)
-library(MoMaColors)
+library(MoMAColors)
 
 getwd()
 # "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
@@ -173,7 +173,7 @@ barnoise <- ggplot(df1) +
   theme(text = element_text(size = 25)) 
 barnoise
 
-ggsave(path = output_today, filename = "AllSites_Judith_Noise.tiff", width = 23, height = 14, device='tiff', dpi=300) 
+#ggsave(path = output_today, filename = "AllSites_Judith_Noise.tiff", width = 23, height = 14, device='tiff', dpi=300) 
 
 ## Look at overall recording period 
 windows()
@@ -412,7 +412,9 @@ dim(pt4)
 ## Recreate file paths 
 ```{r}
 ## Combine back filepath info 
-dx <- input %>% mutate(filename = OUT.FILE.FS) %>% dplyr::select(filename, OUTDIR, FOLDER)
+dx <- input %>% 
+  mutate(filename = OUT.FILE.FS) %>% 
+  dplyr::select(filename, OUTDIR, FOLDER)
 
 
 pt5 <- left_join(pt4, dx) 
@@ -420,23 +422,77 @@ summary(pt5)
 
 head(pt5)
 
-pt5$filepath <- paste0(pt5$OUTDIR, "/", pt5$FOLDER, "/", pt5$filename)
+pt5$path <- paste0(pt5$OUTDIR, "/", pt5$FOLDER, "/")
+#head(pt5$path)
 
-head(pt5$filepath)
-pt5$fullpath1 <- gsub("\\\\", "/", pt5$filepath)
-pt5$fullpath2 <- gsub("C:/TemporaryDatastorage", "P:/SW_CoastalMonitoring/Data_collection_2024", pt5$fullpath1)
-pt5$fullpath3 <- gsub("D:/", "P:/SW_CoastalMonitoring/Data_collection_2024/", pt5$fullpath2)
+pt5$path1 <- gsub("\\\\", "/", pt5$path)
+
+pt5$path1 <- factor(pt5$path1)
+levels(pt5$path1)
+
+pt5$path2 <- gsub("C:/TemporaryDatastorage", "P:/SW_CoastalMonitoring/Data_collection_2024", pt5$path1)
+
+#P:/SW_CoastalMonitoring/Data_collection_2024/CM-42/WAV/KPRO_V1_09.10.2024_CM-42/Data/
+
+pt5$path3 <- gsub("D:/06.09.2024_CM-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_06.09.2024_CM-04/Data/", pt5$path2)
 
 
+pt5$path4 <- gsub("D:/09.10.2024_C-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_09.10.2024_CM-04/Data/", pt5$path3)
 
-# D:/
+pt5$path5 <- gsub("D:/18.07.2024_CM_04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_18.07.2024_CM_04/Data/", pt5$path4)
+
+pt5$path6 <- gsub("D:/24.08.2024_CM-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_24.08.2024_CM-04/Data/", pt5$path5)
+
+pt5$path7 <- gsub("D:/25.07.2024_CM-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_25.07.2024_CM-04/Data/", pt5$path6)
+
+pt5$path8 <- gsub("D:/CM/01.10.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_01.10.2024_CM-05/Data/", pt5$path7)
+
+pt5$path9 <- gsub("D:/CM/02.08.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_02.08.2024_CM-05/Data/", pt5$path8)
+
+pt5$path10 <- gsub("D:/CM/19.07.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_19.07.2024_CM-05/Data/", pt5$path9)
+
+pt5$path11 <- gsub("D:/CM/24.08.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_24.08.2024_CM-05/Data/", pt5$path10)
+
+pt5$path12 <- gsub("Data/Data/", "Data/", pt5$path11)
+
+pt5$path12 <- factor(pt5$path12)
+levels(pt5$path12)
+
+
+pt5$fullpath <- paste0(pt5$path12, "/", pt5$filename)
 head(pt5$fullpath)
 
-pt6 <- pt5 %>% select(filename, fullpath, 
+cm04 <- pt5 %>% 
+  select(filename, fullpath, 
                       DATE, TIME, HOUR, 
                       DATE.12, TIME.12, HOUR.12, 
-                      autoid, site, month) 
+                      autoid, site, month) %>% 
+  filter(site == "CM-04") %>% droplevels() %>% 
+  mutate(full_filepath )
 
+## test run with copying over CM-04 files... 
+
+# CM-04 3732
+cm04_files <- as.list(cm04$fullpath)
+cm04_files_list <- unlist(cm04_files)
+
+file.copy(from = cm04_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-04_Test")
+  beep()
+# over 218 were false... There are 300 noise files 
+  
+  summary(cm04$autoid)
+
+  check <- cm04 %>% filter(autoid == "Noise") %>% droplevels()
+  
+check.better <- list.files("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-04_Test")
+
+checkthis <- data.frame(filename = check.better)
+checkthis1 <- data.frame(filename = cm04$filename) 
+checkthis2<- left_join(checkthis, cm04)
+summary(checkthis2$autoid)
+## # None of these were noise files.. 
+#beep()
 
 
 ```
