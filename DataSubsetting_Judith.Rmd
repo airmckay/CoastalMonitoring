@@ -411,6 +411,25 @@ dim(pt4)
 
 ## Recreate file paths 
 ```{r}
+## Before we get too invested... lets see where we have "Noise" sub-directories
+
+# Specify the root directory where the search should begin
+root_dir <- "P:/SW_CoastalMonitoring/Data_collection_2024"
+
+# List all directories under the root directory
+all_dirs <- list.dirs(root_dir, recursive = TRUE, full.names = TRUE)
+beep()
+
+df.all_dirs <-as.data.frame(all_dirs)
+write.csv(df.all_dirs, file = file.path(output_today, "file_directories.csv")) 
+
+# Filter directories that include a "Noise" folder
+noise_dirs <- all_dirs[grepl("Noise$", all_dirs)]
+
+# Print the result
+print(noise_dirs)
+
+
 ## Combine back filepath info 
 dx <- input %>% 
   mutate(filename = OUT.FILE.FS) %>% 
