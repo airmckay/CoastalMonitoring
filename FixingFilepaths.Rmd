@@ -1,0 +1,118 @@
+---
+title: "Untitled"
+output: html_document
+date: "2025-10-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(data.table)
+library(tidyverse)
+library(beepr)
+library(lubridate)
+library(purrr)
+library(janitor)
+library(renv)
+library(stringr)
+library(beepr)
+library(randomcoloR)
+library(wesanderson)
+library(leaflegend)
+library(osmdata)
+library(MetBrewer)
+library(colorBlindness)
+library(colorblindcheck)
+library(MoMAColors)
+library(stringdist)
+
+getwd()
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
+
+## Setup output directory 
+output <-"C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed" # where you want to save your data
+
+file.name <- "FixingFilepaths"
+
+todays_date <- Sys.Date()
+ 
+dir.name <- str_c(output,"/", file.name, "_", todays_date)
+dir.name
+ 
+output_today <- dir.name
+output_today
+
+dir.create(output_today)
+output_today
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/FixingFilepaths_2025-10-07"
+
+```
+
+
+## Background
+Originally I worked on this code within "DataSubsetting_Judith.RMD" so original outputs may be found in the output folders associated with this workflow. 
+
+Designed specifically to re-create filepaths for files that are KPRO_V1 outputs for the Coastal Monitoring project. 
+
+```{r cars}
+
+#### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ####
+#### THIS NEXT CODE CHUNK MAY TAKE DAYS TO RUN FOR THE CM PROJECT!!! 
+#### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ####
+
+# Specify the root directory where the search should begin
+# root_dir <- "P:/SW_CoastalMonitoring/Data_collection_2024"
+# 
+# # List all directories under the root directory
+# all_dirs <- list.dirs(root_dir, recursive = TRUE, full.names = TRUE)
+# beep()
+# 
+# df.all_dirs <-as.data.frame(all_dirs)
+# write.csv(df.all_dirs, file = file.path(output_today, "file_directories.csv")) 
+
+df.all_dirs <- read_csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/OverviewProcessedBatData_Judith2025_2025-09-21/file_directories.csv", 
+     col_types = cols(...1 = col_skip()))
+
+### Now select all rows that can be used for re-creating file paths 
+
+# Define the target string and a distance threshold
+target_string <- "P:/SW_CoastalMonitoring/Data_collection_2024/CM-50/WAV/"
+distance_threshold <- 3  # Allow up to 2 character difference
+
+# Calculate the Levenshtein distance between the target string and each row in the column
+df.all_dirs$distance <- stringdist(df.all_dirs$all_dirs, target_string, method = "lv")
+
+# Subset rows where the distance is within the threshold
+subset_df <- df.all_dirs[df.all_dirs$distance <= distance_threshold, ]
+subset_df
+
+## This ALMOST worked - just need to drop the one row which includes a "DATA" directory
+
+subset_df1 <- subset_df %>% filter(all_dirs != "P:/SW_CoastalMonitoring/Data_collection_2024/CM-50/DATA")
+# Nice!! 
+
+## The column "all_dirs" now becomes our target strings - so we can also re-create all of the "collection" directories 
+
+target_strings <- subset_df1$all_dirs
+subset_df2 <- df.all_dirs[grepl(paste(target_strings, collapse = "|"), df.all_dirs$all_dirs), ]
+head(subset_df2)
+
+#Now we subset this to only include rows which have full file paths - these will have a certiain minimum character string length 
+# "P:/SW_CoastalMonitoring/Data_collection_2024/CM-01/WAV/KPRO_V1/16.08.2024_CM-01/Data"
+# This is 84 characters
+min_chars <- 84
+
+# Subset rows where the number of characters in 'Name' is greater than or equal to the minimum
+subset_df3 <- subset_df2[nchar(subset_df2$all_dirs) >= min_chars, ]
+subset_df3
+
+# THIS IS IT! HERE IS OUR COMPLETE LIST OF OUTPUT DIRECTORIES <3 
+#write.csv(subset_df3, file.path(output_today, "cleaned_output_filepaths_CM2024.csv"))
+
+
+```
+
+## Including Plots
+

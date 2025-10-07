@@ -56,6 +56,7 @@ library(MetBrewer)
 library(colorBlindness)
 library(colorblindcheck)
 library(MoMAColors)
+library(stringdist)
 
 getwd()
 # "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
@@ -127,68 +128,68 @@ cm23 <- df1 %>% filter(site == "CM-23")
 cm21 <- df1 %>% filter(site == "CM-21")  
 cm42 <- df1 %>% filter(site == "CM-42")  
   
-noiserat_cm04 <- cm04 %>% 
-  group_by(autoid) %>%
-  summarise(percentage = n() / nrow(cm04) * 100) %>% 
-  mutate(percentage = as.integer(percentage)) 
+# noiserat_cm04 <- cm04 %>% 
+#   group_by(autoid) %>%
+#   summarise(percentage = n() / nrow(cm04) * 100) %>% 
+#   mutate(percentage = as.integer(percentage)) 
 ## 13% noise
-
-noiserat_cm05 <- cm05 %>% 
-  group_by(autoid) %>%
-  summarise(percentage = n() / nrow(cm05) * 100) %>% 
-  mutate(percentage = as.integer(percentage)) 
+# 
+# noiserat_cm05 <- cm05 %>% 
+#   group_by(autoid) %>%
+#   summarise(percentage = n() / nrow(cm05) * 100) %>% 
+#   mutate(percentage = as.integer(percentage)) 
 ## 48% noise
 
-noiserat_cm06 <- cm06 %>% 
-  group_by(autoid) %>%
-  summarise(percentage = n() / nrow(cm06) * 100) %>% 
-  mutate(percentage = as.integer(percentage)) 
+# noiserat_cm06 <- cm06 %>% 
+#   group_by(autoid) %>%
+#   summarise(percentage = n() / nrow(cm06) * 100) %>% 
+#   mutate(percentage = as.integer(percentage)) 
 ## 27% noise
 
-noiserat_cm23 <- cm23 %>% 
-  group_by(autoid) %>%
-  summarise(percentage = n() / nrow(cm23) * 100) %>% 
-  mutate(percentage = as.integer(percentage)) 
+# noiserat_cm23 <- cm23 %>% 
+#   group_by(autoid) %>%
+#   summarise(percentage = n() / nrow(cm23) * 100) %>% 
+#   mutate(percentage = as.integer(percentage)) 
 ## 21% noise
 
-noiserat_cm21 <- cm21 %>% 
-  group_by(autoid) %>%
-  summarise(percentage = n() / nrow(cm21) * 100) %>% 
-  mutate(percentage = as.integer(percentage)) 
+# noiserat_cm21 <- cm21 %>% 
+#   group_by(autoid) %>%
+#   summarise(percentage = n() / nrow(cm21) * 100) %>% 
+#   mutate(percentage = as.integer(percentage)) 
 ## 20% noise
 
-noiserat_cm42 <- cm42 %>% 
-  group_by(autoid) %>%
-  summarise(percentage = n() / nrow(cm42) * 100) %>% 
-  mutate(percentage = as.integer(percentage)) 
+# noiserat_cm42 <- cm42 %>% 
+#   group_by(autoid) %>%
+#   summarise(percentage = n() / nrow(cm42) * 100) %>% 
+#   mutate(percentage = as.integer(percentage)) 
 ## 14% noise
 
 
 ## Make a figure illustrating this 
-barnoise <- ggplot(df1) + 
-  geom_bar(aes(x= site, fill = autoid), position = "fill") +
-  scale_fill_manual(name = "AutoID", values = moma.colors("Warhol", n = 13)) + 
-  ylab("Proportion of recordings") + 
-  xlab("Site") +
-  theme(text = element_text(size = 25)) 
-barnoise
+# barnoise <- ggplot(df1) + 
+#   geom_bar(aes(x= site, fill = autoid), position = "fill") +
+#   scale_fill_manual(name = "AutoID", values = moma.colors("Warhol", n = 13)) + 
+#   ylab("Proportion of recordings") + 
+#   xlab("Site") +
+#   theme(text = element_text(size = 25)) 
+# barnoise
 
 #ggsave(path = output_today, filename = "AllSites_Judith_Noise.tiff", width = 23, height = 14, device='tiff', dpi=300) 
 
 ## Look at overall recording period 
-windows()
-ggplot(df1) + 
-  geom_point(aes(x = DATE.12, y = site), 
+ windows()
+ggplot(df1) +
+  geom_point(aes(x = DATE.12, y = site),
              color = "orange", alpha = 0.5, size = 3) +
     xlab("Date in season") + ylab(" ") +
-  ggtitle("Recording activity") + 
-  theme(panel.grid.major = element_blank(), 
+  ggtitle("Recording activity") +
+  theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
+        panel.background = element_blank(),
         text = element_text(size = 25),
         axis.line = element_line(colour = "black"))
-
-ggsave(path = output_today, filename = "BasicRecordingOverview.tiff", width = 23, height = 14, device='tiff', dpi=300) 
+# 
+# ggsave(path = output_today, filename = "BasicRecordingOverview.tiff", width = 23, height = 14, device='tiff', dpi=300) 
 
 # My first instinct is that most recording across all sites happened between late July and early September
 
@@ -212,31 +213,31 @@ summary(df2$autoid)
 #write.csv(df2, file = file.path(output_today, "JuditheData_AutoId_NoNoise_SimpleColumns.csv"))
 
 ## Now take a look on what the recording activity looks like 
-ggplot(df2) + 
-  geom_point(aes(x = DATE.12, y = site), 
-             color = "turquoise", alpha = 0.5, size = 3) +
-    xlab("Date in season") + ylab(" ") +
-  ggtitle("Recording activity - Noise files removed") + 
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        text = element_text(size = 25),
-        axis.line = element_line(colour = "black"))
+# ggplot(df2) + 
+#   geom_point(aes(x = DATE.12, y = site), 
+#              color = "turquoise", alpha = 0.5, size = 3) +
+#     xlab("Date in season") + ylab(" ") +
+#   ggtitle("Recording activity - Noise files removed") + 
+#   theme(panel.grid.major = element_blank(), 
+#         panel.grid.minor = element_blank(),
+#         panel.background = element_blank(), 
+#         text = element_text(size = 25),
+#         axis.line = element_line(colour = "black"))
 
 #ggsave(path = output_today, filename = "BasicRecordingOverview_noNoise.tiff", width = 23, height = 14, device='tiff', dpi=300) 
 
 
 ## And just because I am curious 
-ggplot(df2 %>% filter(autoid == "PIPNAT") %>% droplevels()) + 
-  geom_point(aes(x = DATE.12, y = site), 
-             color = "coral", alpha = 0.5, size = 3) +
-    xlab("Date in season") + ylab(" ") +
-  ggtitle("Recording activity - auotid Nathusius Pip") + 
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        text = element_text(size = 25),
-        axis.line = element_line(colour = "black"))
+# ggplot(df2 %>% filter(autoid == "PIPNAT") %>% droplevels()) + 
+#   geom_point(aes(x = DATE.12, y = site), 
+#              color = "coral", alpha = 0.5, size = 3) +
+#     xlab("Date in season") + ylab(" ") +
+#   ggtitle("Recording activity - auotid Nathusius Pip") + 
+#   theme(panel.grid.major = element_blank(), 
+#         panel.grid.minor = element_blank(),
+#         panel.background = element_blank(), 
+#         text = element_text(size = 25),
+#         axis.line = element_line(colour = "black"))
 
 #ggsave(path = output_today, filename = "BasicRecordingOverview_PNATonly.tiff", width = 23, height = 14, device='tiff', dpi=300) 
 
@@ -403,31 +404,17 @@ ggplot(pt4) +
 dim(pt4)
 # 37179    11
 
-#write.csv(pt4, file = file.path(output_today, "example_JudithSubset_attempt2.csv"))
-# 16.09.2025 
+#write.csv(pt4, file = file.path(output_today, "example_JudithSubset_attempt3.csv"))
+# 07.10.2025 
 
 
 ```
 
 ## Recreate file paths 
 ```{r}
-## Before we get too invested... lets see where we have "Noise" sub-directories
-
-# Specify the root directory where the search should begin
-root_dir <- "P:/SW_CoastalMonitoring/Data_collection_2024"
-
-# List all directories under the root directory
-all_dirs <- list.dirs(root_dir, recursive = TRUE, full.names = TRUE)
-beep()
-
-df.all_dirs <-as.data.frame(all_dirs)
-write.csv(df.all_dirs, file = file.path(output_today, "file_directories.csv")) 
-
-# Filter directories that include a "Noise" folder
-noise_dirs <- all_dirs[grepl("Noise$", all_dirs)]
-
-# Print the result
-print(noise_dirs)
+fp <- read_csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/FixingFilepaths_2025-10-07/cleaned_output_filepaths_CM2024.csv",      col_types = cols(...1 = col_skip()))
+fp$all_dirs <- factor(fp$all_dirs)
+# 296 rows 
 
 
 ## Combine back filepath info 
@@ -438,8 +425,9 @@ dx <- input %>%
 
 pt5 <- left_join(pt4, dx) 
 summary(pt5)
-
 head(pt5)
+
+table(pt5$autoid, pt5$site)
 
 pt5$path <- paste0(pt5$OUTDIR, "/", pt5$FOLDER, "/")
 #head(pt5$path)
@@ -449,70 +437,129 @@ pt5$path1 <- gsub("\\\\", "/", pt5$path)
 pt5$path1 <- factor(pt5$path1)
 levels(pt5$path1)
 
-pt5$path2 <- gsub("C:/TemporaryDatastorage", "P:/SW_CoastalMonitoring/Data_collection_2024", pt5$path1)
 
-#P:/SW_CoastalMonitoring/Data_collection_2024/CM-42/WAV/KPRO_V1_09.10.2024_CM-42/Data/
+### Start the tedious process of fixing things 
+pt5$path2 <- factor(gsub("C:/TemporaryDatastorage", "P:/SW_CoastalMonitoring/Data_collection_2024", pt5$path1))
+levels(pt5$path2)
 
-pt5$path3 <- gsub("D:/06.09.2024_CM-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_06.09.2024_CM-04/Data/", pt5$path2)
+## CM-04 and CM-05 are going to be the most complicated to fix - so lets extract those alone from the fp object
+#fp1 <- fp %>% filter(str_detect(all_dirs, "CM-04|CM-05" ) ) 
+fp04 <- fp %>% filter(str_detect(all_dirs, "CM-04")) %>% droplevels() # 10 obs
+fp05 <- fp %>% filter(str_detect(all_dirs, "CM-05")) %>% droplevels() # 8 obs 
 
+levels(fp04$all_dirs)
+#  [1] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_06.09.2024_CM-04/Data"      
+#  [2] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_06.09.2024_CM-04/Data/NOISE"
+#  [3] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_09.10.2024_CM-04/Data"      
+#  [4] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_09.10.2024_CM-04/Data/NOISE"
+#  [5] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_18.07.2024_CM-04/Data"      
+#  [6] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_18.07.2024_CM-04/Data/NOISE"
+#  [7] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_24.08.2024_CM-04/Data"      
+#  [8] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_24.08.2024_CM-04/Data/NOISE"
+#  [9] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_25.07.2024_CM-04/Data"      
+# [10] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_25.07.2024_CM-04/Data/NOISE"
 
-pt5$path4 <- gsub("D:/09.10.2024_C-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_09.10.2024_CM-04/Data/", pt5$path3)
+levels(fp05$all_dirs)
+# [1] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_01.10.2024_CM-05/Data"      
+# [2] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_01.10.2024_CM-05/Data/NOISE"
+# [3] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_02.08.2024_CM-05/Data"      
+# [4] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_02.08.2024_CM-05/Data/NOISE"
+# [5] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_19.07.2024_CM-05/Data"      
+# [6] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_19.07.2024_CM-05/Data/NOISE"
+# [7] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_24.08.2024_CM-05/Data"      
+# [8] "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_24.08.2024_CM-05/Data/NOISE"
 
-pt5$path5 <- gsub("D:/18.07.2024_CM_04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_18.07.2024_CM_04/Data/", pt5$path4)
+pt5$path3 <- factor(gsub("D:/06.09.2024_CM-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_06.09.2024_CM-04/Data/", pt5$path2)) 
+levels(pt5$path3)
 
-pt5$path6 <- gsub("D:/24.08.2024_CM-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_24.08.2024_CM-04/Data/", pt5$path5)
+pt5$path4 <- factor(gsub("D:/09.10.2024_C-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_09.10.2024_CM-04/Data/", pt5$path3)) 
+levels(pt5$path4)
 
-pt5$path7 <- gsub("D:/25.07.2024_CM-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_25.07.2024_CM-04/Data/", pt5$path6)
+pt5$path5 <- factor(gsub("D:/18.07.2024_CM_04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_18.07.2024_CM_04/Data/", pt5$path4))
+levels(pt5$path5)
 
-pt5$path8 <- gsub("D:/CM/01.10.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_01.10.2024_CM-05/Data/", pt5$path7)
+pt5$path6 <- factor(gsub("D:/24.08.2024_CM-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_24.08.2024_CM-04/Data/", pt5$path5))
+levels(pt5$path6)
 
-pt5$path9 <- gsub("D:/CM/02.08.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_02.08.2024_CM-05/Data/", pt5$path8)
+pt5$path7 <- factor(gsub("D:/25.07.2024_CM-04/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_25.07.2024_CM-04/Data/", pt5$path6))
+levels(pt5$path7)
 
-pt5$path10 <- gsub("D:/CM/19.07.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_19.07.2024_CM-05/Data/", pt5$path9)
+pt5$path8 <- factor(gsub("D:/CM/01.10.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_01.10.2024_CM-05/Data/", pt5$path7)) 
+levels(pt5$path8)
 
-pt5$path11 <- gsub("D:/CM/24.08.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_24.08.2024_CM-05/Data/", pt5$path10)
+pt5$path9 <- factor(gsub("D:/CM/02.08.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_02.08.2024_CM-05/Data/", pt5$path8))
+levels(pt5$path9)
 
-pt5$path12 <- gsub("Data/Data/", "Data/", pt5$path11)
+pt5$path10 <- factor(gsub("D:/CM/19.07.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_19.07.2024_CM-05/Data/", pt5$path9)) 
+levels(pt5$path10)
 
+pt5$path11 <- factor(gsub("D:/CM/24.08.2024_CM-05/Data/", "P:/SW_CoastalMonitoring/Data_collection_2024/CM-05/WAV/KPRO_V1_24.08.2024_CM-05/Data/", pt5$path10)) 
+levels(pt5$path11)
+
+pt5$path12 <- factor(gsub("Data/Data/", "Data/", pt5$path11)) 
 pt5$path12 <- factor(pt5$path12)
 levels(pt5$path12)
+# Nice and tidy now!! 
 
 
-pt5$fullpath <- paste0(pt5$path12, "/", pt5$filename)
-head(pt5$fullpath)
+### Now try to copy over one site at a time. NOTE! 
+## We now know that Noise files for CM-04 and CM-05 had a Noise subdirectory. So now we have to include that in the total directory as well. 
 
-cm04 <- pt5 %>% 
+cm04.noise <- pt5 %>% filter(site == "CM-04") %>% filter(autoid == "Noise") %>% droplevels()
+# 300 noise files 
+cm04.noise$fullpath <- paste0(cm04.noise$path12, "/NOISE/", cm04.noise$filename)
+head(cm04.noise$fullpath)
+
+cm04.bats<- pt5 %>% filter(site == "CM-04") %>% filter(autoid != "Noise") %>% droplevels()
+summary(cm04.bats$autoid)
+# BARBAR EPTNIL MYOBRA MYODAU MYONAT NYCNOC   NoID PIPNAT PIPPYG PLEAUR VESMUR 
+#    278   1200      1     33      4    121    900    102    600    166     27 
+# 3432 files 
+
+cm04.bats$fullpath <- paste0(cm04.bats$path12, "/", cm04.bats$filename)
+head(cm04.bats$fullpath)
+
+cm04.subset <- full_join(cm04.noise, cm04.bats)
+# 3732 obs of 26 vars - good!
+summary(cm04.subset)
+
+cm04.subset1 <- cm04.subset %>% 
   select(filename, fullpath, 
                       DATE, TIME, HOUR, 
                       DATE.12, TIME.12, HOUR.12, 
-                      autoid, site, month) %>% 
-  filter(site == "CM-04") %>% droplevels() %>% 
-  mutate(full_filepath )
+                      autoid, site, month) %>% droplevels()
+summary(cm04.subset1)
 
-## test run with copying over CM-04 files... 
+test <- unique(cm04.subset1$fullpath)
+#3732 unique filepaths - good!
 
+## Now try copying over CM-04 files... 
 # CM-04 3732
-cm04_files <- as.list(cm04$fullpath)
+cm04_files <- as.list(cm04.subset1$fullpath)
 cm04_files_list <- unlist(cm04_files)
 
+
+
+## This will take a while: 
 file.copy(from = cm04_files_list,
-            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-04_Test")
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-04_subset1")
   beep()
-# over 218 were false... There are 300 noise files 
+# 
   
-  summary(cm04$autoid)
-
-  check <- cm04 %>% filter(autoid == "Noise") %>% droplevels()
-  
-check.better <- list.files("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-04_Test")
-
-checkthis <- data.frame(filename = check.better)
-checkthis1 <- data.frame(filename = cm04$filename) 
-checkthis2<- left_join(checkthis, cm04)
-summary(checkthis2$autoid)
+#   summary(cm04$autoid)
+# 
+#   check <- cm04 %>% filter(autoid == "Noise") %>% droplevels()
+#   
+# check.better <- list.files("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-04_Test")
+# 
+# checkthis <- data.frame(filename = check.better)
+# checkthis1 <- data.frame(filename = cm04$filename) 
+# checkthis2<- left_join(checkthis, cm04)
+# summary(checkthis2$autoid)
 ## # None of these were noise files.. 
 #beep()
-
+  
+  ## remember to also copy over metadata!! 
 
 ```
 
