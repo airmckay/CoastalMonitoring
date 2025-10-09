@@ -502,6 +502,15 @@ levels(pt5$path12)
 # Nice and tidy now!! 
 
 
+```
+
+
+
+## Copying files 
+```{r}
+
+  ### CM-04 ### 
+
 ### Now try to copy over one site at a time. NOTE! 
 ## We now know that Noise files for CM-04 and CM-05 had a Noise subdirectory. So now we have to include that in the total directory as well. 
 
@@ -546,20 +555,646 @@ file.copy(from = cm04_files_list,
   beep()
 # 
   
-#   summary(cm04$autoid)
-# 
-#   check <- cm04 %>% filter(autoid == "Noise") %>% droplevels()
-#   
-# check.better <- list.files("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-04_Test")
-# 
-# checkthis <- data.frame(filename = check.better)
-# checkthis1 <- data.frame(filename = cm04$filename) 
-# checkthis2<- left_join(checkthis, cm04)
-# summary(checkthis2$autoid)
-## # None of these were noise files.. 
-#beep()
+  ### 118 files failed to upload... :(
+#### annnnd now we have to find out who those are... 
+  
+  ## some of these are noise.. some are not ... they are all collected on the same day... 
+## I am also able to find them in the correct file directory that is described..
+  
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_18.07.2024_CM_04/Data//2LU00815_20240701_000810_000.wav
+# P:\SW_CoastalMonitoring\Data_collection_2024\CM-04\WAV\KPRO_V1_18.07.2024_CM-04\Data
+    ## SOME HAVE TWO dashes??? WHY??? 
+
+# P:\SW_CoastalMonitoring\Data_collection_2024\CM-04\WAV\KPRO_V1_18.07.2024_CM-04\Data ## IT IS A DASH INSTEAD OF AN UNDERSCORE!!!!!! 
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-04/WAV/KPRO_V1_18.07.2024_CM_04/Data/2LU00815_20240702_023620_000.wav 
+  
+problems <- list.files("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-04_subset1")
+  
+problems <- as.data.frame(problems) 
+problems <- problems %>% rename(filename = problems)
+problems1 <- left_join(problems, cm04.subset1)
+problems2 <- anti_join(cm04.subset1, problems1)
+
+problems2$fullpath <- factor(gsub("//", "/", problems2$fullpath)) 
+problems2$fullpath <- factor(gsub("CM_04", "CM-04", problems2$fullpath)) 
+
+problem_files <- as.list(problems2$fullpath)
+problem_files_list <- unlist(problem_files)
+
+## This will take a while: 
+file.copy(from = problem_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-04_subset1")
+  beep()
+  
+  ## Now fix the metadata and copy over 
+
+fixcm04 <- cm04.subset1 %>% filter(!(filename %in% problems2$filename))  
+nrow(cm04.subset1) - nrow(fixcm04) 
+## 118 - good!
+nrow(cm04.subset1) - 118
+dim(fixcm04)
+# 3614 - good! 
+
+# Now attach with correct metadata 
+fixcm041 <- full_join(fixcm04, problems2)
+dim(fixcm041)
+dim(cm04.subset1)
+# 3732 - good!
+
+test <- unique(fixcm041$filename)
+# 3732 unique files - good!! Now you can copy over the fixed metadata 
+
+write.csv(fixcm041,
+            "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-04_subset1/CM04_JudithSubset1_meta.csv" )
+  # 3732 obs of 11 vars
+  
+  
+  ### CM-05 ### 
+  
+  ### Now try to copy over one site at a time. NOTE! 
+## We now know that Noise files for CM-04 and CM-05 had a Noise subdirectory. So now we have to include that in the total directory as well. 
+
+cm05.noise <- pt5 %>% filter(site == "CM-05") %>% filter(autoid == "Noise") %>% droplevels()
+# 300 noise files, 25 vars
+
+cm05.noise$fullpath <- paste0(cm05.noise$path12, "/NOISE/", cm05.noise$filename)
+head(cm05.noise$fullpath)
+
+cm05.bats<- pt5 %>% filter(site == "CM-05") %>% filter(autoid != "Noise") %>% droplevels()
+summary(cm05.bats$autoid)
+# BARBAR EPTNIL MYODAU MYONAT NYCNOC   NoID PIPNAT PIPPYG PLEAUR VESMUR 
+#    253   1200     43     14    104    900    350    600     89    108
+# 3661 files 
+
+cm05.bats$fullpath <- paste0(cm05.bats$path12, "/", cm05.bats$filename)
+head(cm05.bats$fullpath)
+
+cm05.subset <- full_join(cm05.noise, cm05.bats)
+# 3732 obs of 26 vars - good!
+summary(cm05.subset)
+
+cm05.subset1 <- cm05.subset %>% 
+  select(filename, fullpath, 
+                      DATE, TIME, HOUR, 
+                      DATE.12, TIME.12, HOUR.12, 
+                      autoid, site, month) %>% droplevels()
+summary(cm05.subset1)
+# 3961 obs of 11 vars
+
+test <- unique(cm05.subset1$fullpath)
+#3961 unique filepaths - good!
+
+## Now try copying over CM-05 files... 
+# CM-05 3732
+cm05_files <- as.list(cm05.subset1$fullpath)
+cm05_files_list <- unlist(cm05_files)
+
+dir.create("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-05_subset1")
+
+## This will take a while: 
+file.copy(from = cm05_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-05_subset1")
+  beep()
+## 5 error messages
+#   Warning messages:
+# 1: In file.copy(from = cm05_files_list, to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-05_subset1") :
+#   problem copying P:\SW_CoastalMonitoring\Data_collection_2024\CM-05\WAV\KPRO_V1_19.07.2024_CM-05\Data\\2LU00869_20240703_033049_000.wav to P:\SW_CoastalMonitoring\Data_analysis_2024\MSc_Theses\Judith\CM-05_subset1\2LU00869_20240703_033049_000.wav: No such file or directory
+# 2: In file.copy(from = cm05_files_list, to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-05_subset1") :
+#   problem copying P:\SW_CoastalMonitoring\Data_collection_2024\CM-05\WAV\KPRO_V1_02.08.2024_CM-05\Data\\2LU00869_20240721_030833_000.wav to P:\SW_CoastalMonitoring\Data_analysis_2024\MSc_Theses\Judith\CM-05_subset1\2LU00869_20240721_030833_000.wav: No such file or directory
+# 3: In file.copy(from = cm05_files_list, to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-05_subset1") :
+#   problem copying P:\SW_CoastalMonitoring\Data_collection_2024\CM-05\WAV\KPRO_V1_01.10.2024_CM-05\Data\\2LU00869_20240902_212431_000.wav to P:\SW_CoastalMonitoring\Data_analysis_2024\MSc_Theses\Judith\CM-05_subset1\2LU00869_20240902_212431_000.wav: No such file or directory
+# 4: In file.copy(from = cm05_files_list, to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-05_subset1") :
+#   problem copying P:\SW_CoastalMonitoring\Data_collection_2024\CM-05\WAV\KPRO_V1_01.10.2024_CM-05\Data\\2LU00869_20240906_011558_000.wav to P:\SW_CoastalMonitoring\Data_analysis_2024\MSc_Theses\Judith\CM-05_subset1\2LU00869_20240906_011558_000.wav: No such file or directory
+# 5: In file.copy(from = cm05_files_list, to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-05_subset1") :
+#   problem copying P:\SW_CoastalMonitoring\Data_collection_2024\CM-05\WAV\KPRO_V1_01.10.2024_CM-05\Data\\2LU00869_20240908_205031_000.wav to P:\SW_CoastalMonitoring\Data_analysis_2024\MSc_Theses\Judith\CM-05_subset1\2LU00869_20240908_205031_000.wav: No such file or directory
+  
+## check to see where these files were supposed to be... 
+
+whats.this <- cm05.subset1 %>% filter(filename %in% c("2LU00869_20240703_033049_000.wav", "2LU00869_20240721_030833_000.wav",
+  "2LU00869_20240902_212431_000.wav", "2LU00869_20240906_011558_000.wav", "2LU00869_20240908_205031_000.wav")) 
+## inspect for potential problems related to finding the file in original file path
+## here is the weird double parantheses problem again
+## Also all of these files were in the "Noise" folder even though they were not Noise accroding to autoid (!) 
+
+whats.this$fullpath <- factor(gsub("//", "/Noise/", whats.this$fullpath)) 
+
+whats.this_files <- as.list(whats.this$fullpath)
+whats.this_files_list <- unlist(whats.this_files)
+
+whats.this_files_list
+
+## This will take a while: 
+file.copy(from = whats.this_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-05_subset1")
+  beep()
+# fixed it! 
+  
+  #Now fix the metadata 
+  summary(cm05.subset1)
+  
+  
+  fixcm05 <- cm05.subset1 %>% dplyr::filter(!(filename %in% whats.this$filename))
+  nrow(cm05.subset1) - nrow(whats.this)
+  #3961-5
+  # 3956
+  dim(fixcm05)
+  ## 3956 - good!
+  
+  fixcm051 <- full_join(fixcm05, whats.this)
+  dim(fixcm051)
+  test <- unique(fixcm051$filename) # all good! 
   
   ## remember to also copy over metadata!! 
+  #write.csv(fixcm051,
+          "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-05_subset1/CM05_JudithSubset1_meta.csv" )
+  # 3961 obs of 11 vars
+
+##### CM-06 #####
+## FIRST - check the "fp" object to see if CM-06 had separate sub directories for Noise files 
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_04.10.2024_CM-06/Data/NOISE
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_14.09.2024_CM-06/Data
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_14.09.2024_CM-06/Data/NOISE
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_16.10.2024_CM-06/Data
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_16.10.2024_CM-06/Data/NOISE
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_19.07.2024_CM-06/Data
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_19.07.2024_CM-06/Data/NOISE
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_19.08.2024_CM-06/Data
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_19.08.2024_CM-06/Data/Data
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_19.08.2024_CM-06/Data/Data/NOISE
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_25.07.2024_CM-06/Data
+
+# P:/SW_CoastalMonitoring/Data_collection_2024/CM-06/WAV/KPRO_V1_25.07.2024_CM-06/Data/NOISE
+
+## Yes, and for some reasont here are some repeat "Data/Data/" directories that do not fit with the actual file structure 
+
+ cm06 <- pt5 %>% filter(site == "CM-06") %>% droplevels()
+ levels(cm06$path12)
+  cm06$path12 <- factor(gsub("/Data/Data/", "/Data/", cm06$path12))
+levels(cm06$path12)    
+
+
+cm06.noise <- cm06 %>% filter(autoid == "Noise") %>% droplevels()
+# 300 noise files, 25 vars
+
+cm06.noise$fullpath <- paste0(cm06.noise$path12, "/NOISE/", cm06.noise$filename)
+head(cm06.noise$fullpath)
+
+cm06.bats<- cm06 %>% filter(autoid != "Noise") %>% droplevels()
+summary(cm06.bats$autoid)
+# BARBAR EPTNIL MYODAU MYONAT NYCNOC   NoID PIPNAT PIPPYG PLEAUR VESMUR 
+#    469   1200     36     64    568    900   2644    600    947    294 
+# 7722 files 
+
+cm06.bats$fullpath <- paste0(cm06.bats$path12, "/", cm06.bats$filename)
+head(cm06.bats$fullpath)
+
+cm06.subset <- full_join(cm06.noise, cm06.bats)
+# 8022 obs of 26 vars - good!
+summary(cm06.subset)
+
+cm06.subset1 <- cm06.subset %>% 
+  select(filename, fullpath, 
+                      DATE, TIME, HOUR, 
+                      DATE.12, TIME.12, HOUR.12, 
+                      autoid, site, month) %>% droplevels()
+summary(cm06.subset1)
+# 8022 obs of 11 vars
+
+test <- unique(cm06.subset1$fullpath)
+#8022 unique filepaths - good!
+
+## Now try copying over CM-06 files... 
+cm06_files <- as.list(cm06.subset1$fullpath)
+cm06_files_list <- unlist(cm06_files)
+
+dir.create("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-06_subset1")
+
+## This will take a while: 
+file.copy(from = cm06_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-06_subset1")
+  beep()
+
+  # 50 error warnings!   
+
+  ## In these cases - the nested "Data/Data/ folder was actually correct! there is also a "//" which is not helping 
+new.problems <- cm06.subset1 %>% 
+  filter(filename %in%  c("2LU00870_20240725_200813_000.wav",
+"2LU00870_20240726_175838_000.wav",
+"2LU00870_20240726_185757_000.wav",
+"2LU00870_20240726_222306_000.wav",
+"2LU00870_20240726_222334_000.wav",
+"2LU00870_20240727_201518_000.wav",
+"2LU00870_20240727_214834_000.wav",
+"2LU00870_20240727_233311_000.wav",
+"2LU00870_20240728_000156_000.wav",
+"2LU00870_20240728_005929_000.wav",
+"2LU00870_20240728_014034_000.wav",
+"2LU00870_20240728_032044_000.wav",
+"2LU00870_20240728_035151_000.wav",
+"2LU00870_20240728_184757_000.wav",
+"2LU00870_20240728_190136_000.wav",
+"2LU00870_20240728_203404_000.wav",
+"2LU00870_20240728_205551_000.wav",
+"2LU00870_20240728_205723_000.wav",
+"2LU00870_20240728_210252_000.wav",
+"2LU00870_20240729_035712_000.wav",
+"2LU00870_20240729_172627_000.wav",
+"2LU00870_20240729_204859_000.wav",
+"2LU00870_20240729_205631_000.wav",
+"2LU00870_20240730_002920_000.wav",
+"2LU00870_20240730_172725_000.wav",
+"2LU00870_20240730_175221_000.wav",
+"2LU00870_20240730_232022_000.wav",
+"2LU00870_20240730_235843_000.wav",
+"2LU00870_20240731_011024_000.wav",
+"2LU00870_20240731_034038_000.wav",
+"2LU00870_20240731_191307_000.wav",
+"2LU00870_20240731_192020_000.wav",
+"2LU00870_20240731_202745_000.wav",
+"2LU00870_20240731_203322_000.wav",
+"2LU00870_20240731_234012_000.wav",
+"2LU00870_20240801_012613_000.wav",
+"2LU00870_20240801_041624_000.wav",
+"2LU00870_20240801_191301_000.wav",
+"2LU00870_20240801_191311_000.wav",
+"2LU00870_20240801_235216_000.wav",
+"2LU00870_20240802_234815_000.wav",
+"2LU00870_20240802_234916_000.wav",
+"2LU00870_20240803_012228_000.wav",
+"2LU00870_20240803_035404_000.wav",
+"2LU00870_20240803_043130_000.wav",
+"2LU00870_20240803_185915_000.wav",
+"2LU00870_20240804_182744_000.wav",
+"2LU00870_20240805_170858_000.wav",
+"2LU00870_20240805_224519_000.wav",
+"2LU00870_20240806_203525_000.wav")) %>% droplevels()
+
+new.problems$fullpath <- gsub("//", "/Data/", new.problems$fullpath)
+## Now try copying over CM-06 files... 
+new.problems_files <- as.list(new.problems$fullpath)
+new.problems_files_list <- unlist(new.problems_files)
+
+## This will take a while: 
+file.copy(from = new.problems_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-06_subset1")
+  beep()
+  
+  
+## Mistakes made here - there were actually more than 50 error messages. Time to go fishing for who is still missing. (look at the "fish" objects below where I fix this.)
+  
+  fish <- list.files ("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-06_subset1")
+  # 6351 files here (from all the copied files made below as well - sorry, this is a hot mess)
+  # There should be 8022 :/
+  cm06.sub <- cm06.subset1$filename
+  8022-6351
+  # 1671 missing files
+  
+  not_in_list <- setdiff(unlist(cm06.sub), unlist(fish))
+not_in_list 
+# returns 1672 files... 
+test <- unique(not_in_list) # they are all unique! 
+# trust the process and try searching for these... 
+
+fish1 <- cm06.subset1 %>% filter(filename %in% not_in_list) %>% droplevels
+fish1$fullpath  <- gsub("//", "/Data/", fish1$fullpath) 
+# this may have fixed it - give it a try!
+
+fish1_files <- as.list(fish1$fullpath)
+fish1_files_list <- unlist(fish1_files)
+#1672 files 
+
+## This will take a while: 
+file.copy(from = fish1_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-06_subset1")
+  beep()
+  
+## There are 8 additional error messages - non-Noise files in the Noise directory:/
+ fish2 <- cm06.subset1 %>% 
+   filter(
+     filename %in% 
+       c("2LU00870_20240819_021252_000.wav", "2LU00870_20240818_054350_000.wav", 
+         "2LU00870_20240910_003545_000.wav", "2LU00870_20240901_214026_000.wav",
+         "2LU00870_20240830_035213_000.wav", "2LU00870_20240830_025611_000.wav",
+         "2LU00870_20240824_231505_000.wav", "2LU00870_20240724_011139_000.wav")) %>% droplevels 
+ fish2$filename  
+
+fish2$fullpath <- gsub("/Data//", "/Data/NOISE/", fish2$fullpath) 
+ 
+fish2_files <- as.list(fish2$fullpath)
+fish2_files_list <- unlist(fish2_files)
+# 8 files 
+
+
+## This will take a while: 
+file.copy(from = fish2_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-06_subset1")
+  beep()
+  
+## Still 2 errors 
+  # \Data\Data\NOISE
+  # 2LU00870_20240819_021252_000.wav
+  # 2LU00870_20240818_054350_000.wav
+  
+fish3 <- cm06.subset1 %>% 
+   filter(filename %in% c("2LU00870_20240819_021252_000.wav", "2LU00870_20240818_054350_000.wav")) %>% droplevels()
+
+fish3$fullpath <- gsub("//", "/Data/NOISE/", fish3$fullpath) 
+fish3_files <- as.list(fish3$fullpath)
+fish3_files_list <- unlist(fish3_files)
+fish3_files_list
+# 2 files 
+
+## This will take a while: 
+file.copy(from = fish3_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-06_subset1")
+  beep()
+
+last.test <- list.files("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-06_subset1")
+#8023 files 
+dim(cm06.subset1)
+# there is one extra for some reason!
+true.cm06 <- cm06.subset1$filename
+not_in_list <- setdiff(unlist(last.test), unlist(true.cm06))
+#only the meta data! no problem:) 
+
+## Now fish the metadata! 
+fish2.0 <- fish2 %>% filter(!(filename %in% c("2LU00870_20240819_021252_000.wav", "2LU00870_20240818_054350_000.wav")))
+fish4 <- full_join(fish2.0, fish3) # both with corrected file paths used to copy files 
+fish4files <- fish4$filename
+#8 files - with correct metadata. 
+
+fish5<- full_join(fish4, new.problems) 
+# the 50 correct file paths from earlier combined with the 8 merged above
+dim(fish4) + dim(new.problems)
+# 58rows - that checks out, good!
+
+## remove these 8 file names from the "fish1" object
+fish1.0<- fish1 %>% filter(!(filename %in% fish4files))
+dim(fish1.0)
+#1672-8 = 1664, good! 
+
+fish6 <- full_join(fish5, fish1.0) #58 + 1644 fixed file paths copied separately 
+dim(fish6)
+#1722    = 1664 + 58 - goood! 
+#These are ALL the files that I had to make slight adjustments to filepaths in order to copy over.  
+# Now I fix the full the metadata list for this site.
+
+fishlist <- fish6$filename #172 
+
+fixedfish <-  cm06.subset1 %>% filter(!(filename %in% fishlist)) %>% droplevels()
+dim(fixedfish) #6300
+
+#now merge with the correct filename/filepath object
+
+fixedfish1 <- full_join(fixedfish, fish6)
+dim(fixedfish1)
+# 8022 11 - good!!
+
+test <- unique(fixedfish1 $filename) # 8022 unique filenames - good! 
+
+summary(fixedfish1)
+summary(cm06.subset1)
+# metadata matches up and now the file paths are fixed!!
+
+## remember to copy over meta data! 
+  #write.csv(fixedfish1,
+  #          "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-06_subset1/CM06_JudithSubset1_meta.csv" )
+  # 8022 obs of 11 vars
+
+  
+
+  ### CM-21 ### 
+  
+  ### Now try to copy over one site at a time. NOTE! 
+## We now know that Noise files for CM-04 and CM-21 had a Noise subdirectory. So now we have to include that in the total directory as well. 
+
+cm21.noise <- pt5 %>% filter(site == "CM-21") %>% filter(autoid == "Noise") %>% droplevels()
+# 300 noise files, 25 vars
+
+cm21.noise$fullpath <- paste0(cm21.noise$path12, "NOISE/", cm21.noise$filename)
+# there was a double "/" caused by the code I was using
+head(cm21.noise$fullpath)
+
+cm21.bats<- pt5 %>% filter(site == "CM-21") %>% filter(autoid != "Noise") %>% droplevels()
+# 7578 files, 25 vars
+
+summary(cm21.bats$autoid)
+# BARBAR EPTNIL MYOBRA MYODAU MYOMYS MYONAT NYCNOC   NoID PIPNAT PIPPYG PLEAUR VESMUR 
+#    605   1200     57   1749     40      6    242    900   1691    600    193    295
+# 7578 files 
+
+cm21.bats$fullpath <- paste0(cm21.bats$path12, cm21.bats$filename) # there was a double "/" caused by the code I was using earlier - this fixes it 
+head(cm21.bats$fullpath)
+
+cm21.subset <- full_join(cm21.noise, cm21.bats)
+# 7878 obs of 26 vars - good!
+summary(cm21.subset)
+
+cm21.subset1 <- cm21.subset %>% 
+  select(filename, fullpath, 
+                      DATE, TIME, HOUR, 
+                      DATE.12, TIME.12, HOUR.12, 
+                      autoid, site, month) %>% droplevels()
+summary(cm21.subset1)
+# 7878 obs of 11 vars
+
+test <- unique(cm21.subset1$fullpath)
+#7878 unique file paths - good!
+
+## Now try copying over CM-21 files... 
+# CM-21 7878
+cm21_files <- as.list(cm21.subset1$fullpath)
+cm21_files_list <- unlist(cm21_files)
+
+dir.create("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-21_subset1")
+
+## This will take a while: 
+file.copy(from = cm21_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-21_subset1")
+  beep()
+
+## 3 error messages
+  
+# Warning messages:
+# 1: In file.copy(from = cm21_files_list, to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-21_subset1") :
+#   problem copying P:\SW_CoastalMonitoring\Data_collection_2024\CM-21\WAV\KPRO_V1_01.10.2024_CM-21\Data\2LU00831_20240811_021836_000.wav to P:\SW_CoastalMonitoring\Data_analysis_2024\MSc_Theses\Judith\CM-21_subset1\2LU00831_20240811_021836_000.wav: No such file or directory
+# 2: In file.copy(from = cm21_files_list, to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-21_subset1") :
+#   problem copying P:\SW_CoastalMonitoring\Data_collection_2024\CM-21\WAV\KPRO_V1_01.10.2024_CM-21\Data\2LU00831_20240905_040254_000.wav to P:\SW_CoastalMonitoring\Data_analysis_2024\MSc_Theses\Judith\CM-21_subset1\2LU00831_20240905_040254_000.wav: No such file or directory
+# 3: In file.copy(from = cm21_files_list, to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-21_subset1") :
+#   problem copying P:\SW_CoastalMonitoring\Data_collection_2024\CM-21\WAV\KPRO_V1_01.10.2024_CM-21\Data\2LU00831_20240906_041420_000.wav to P:\SW_CoastalMonitoring\Data_analysis_2024\MSc_Theses\Judith\CM-21_subset1\2LU00831_20240906_041420_000.wav: No such file or directory
+  
+  ## These are all noise files then... 
+
+probs21 <- cm21.subset1 %>% filter(filename %in% c("2LU00831_20240811_021836_000.wav", "2LU00831_20240905_040254_000.wav", "2LU00831_20240906_041420_000.wav")) 
+
+probs21 $fullpath    
+probs21$fullpath <- gsub("/Data/", "/Data/NOISE/", probs21$fullpath)
+
+## Now try copying over CM-06 files... 
+probs21_files <- as.list(probs21$fullpath)
+probs21_files_list <- unlist(probs21_files)
+
+## This will take a while: 
+file.copy(from = probs21_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-21_subset1")
+  beep()
+  
+cm21.subset2 <- cm21.subset1 %>% filter(!(filename %in% c("2LU00831_20240811_021836_000.wav", "2LU00831_20240905_040254_000.wav", "2LU00831_20240906_041420_000.wav")))
+#7875 obs - good! 
+
+cm21.subset3 <- full_join(cm21.subset2, probs21)  
+summary(cm21.subset3)
+# 7878 obs of 11 vars - good! 
+  
+## remember to copy over meta data! 
+  write.csv(cm21.subset3,
+            "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-21_subset1/CM21_JudithSubset1_meta.csv" )
+  # 7878 obs of 11 vars
+  
+  
+    ### CM-23 ### 
+  
+### Now try to copy over one site at a time. NOTE! 
+## there are no Noise directories for this site!! <3 (I was wrong about this - fixed below...)
+
+cm23.bats<- pt5 %>% filter(site == "CM-23") %>% droplevels()
+# 4981 files, 25 vars
+
+summary(cm23.bats$autoid)
+# BARBAR EPTNIL MYODAU MYONAT NYCNOC   NoID  Noise PIPNAT PIPPYG PLEAUR VESMUR 
+#    434   1200    297      9    196    900    300    601    600    208    236 
+# 4981 files 
+
+cm23.bats$fullpath <- paste0(cm23.bats$path12, cm23.bats$filename) # there was a double "/" caused by the code I was using earlier - this fixes it 
+head(cm23.bats$fullpath)
+
+
+cm23.subset1 <- cm23.bats %>% 
+  select(filename, fullpath, 
+                      DATE, TIME, HOUR, 
+                      DATE.12, TIME.12, HOUR.12, 
+                      autoid, site, month) %>% droplevels()
+summary(cm23.subset1)
+# 4981 obs of 11 vars
+
+test <- unique(cm23.subset1$fullpath)
+#4981 unique file paths - good!
+
+## Now try copying over CM-23 files... 
+# CM-23 4981
+cm23_files <- as.list(cm23.subset1$fullpath)
+cm23_files_list <- unlist(cm23_files)
+
+#dir.create("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-23_subset1")
+
+## This will take a while: 
+file.copy(from = cm23_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-23_subset1")
+  beep()
+  
+## 50 + warning signs, go find the culprits 
+
+probs.23 <- list.files("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-23_subset1")
+#4681 obs 
+4981-4681
+# 300 missing... I bet these will be the Noise files!!!! I was mistaken - there are Noise folder sub directories:(   
+
+noise.23 <- cm23.subset1 %>% filter(autoid == "Noise") %>% droplevels()
+
+check.23 <- noise.23$filename
+
+matches <- sum(unlist(probs.23) %in% unlist(noise.23 ))
+# 0 matches
+# nice - these should not match! Now I know I can copy over all Noise files without creating duplicats
+
+noise.23$fullpath <- gsub("/Data/", "/Data/NOISE/", noise.23$fullpath)
+head(noise.23$fullpath) # good!
+
+# CM-23 
+noise.23_files <- as.list(noise.23$fullpath)
+noise.23_files_list <- unlist(noise.23_files)
+
+#dir.create("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-23_subset1")
+
+## This will take a while: 
+file.copy(from = noise.23_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-23_subset1")
+  beep()
+
+  ## check that the number of files in this folder adds up 
+test <- list.files("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-23_subset1")
+# 4981 - good! 
+
+
+## Now fix the metadata
+cm23.subset2 <- cm23.subset1 %>% filter(!(filename %in% check.23))
+#4681 obs - good! 
+
+cm23.subset3 <- full_join(cm23.subset2, noise.23)  
+summary(cm23.subset3)
+# 4981 obs of 11 vars - good! 
+  
+## remember to copy over meta data! 
+  write.csv(cm23.subset3,
+            "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-23_subset1/CM23_JudithSubset1_meta.csv" )
+  # 4981 obs of 11 vars
+  
+
+###### CM-42 ######
+  
+### Now try to copy over one site at a time. NOTE! 
+## there are no Noise directories for this site!! 
+
+cm42.bats<- pt5 %>% filter(site == "CM-42") %>% droplevels()
+# 8605 files, 25 vars
+
+summary(cm42.bats$autoid)
+# BARBAR EPTNIL MYOBRA MYODAU MYOMYS MYONAT NYCNOC   NoID  Noise PIPNAT PIPPYG PLEAUR VESMUR 
+#    397   1200     84   1771    334     26    821    900    300    851    600   1294     27 
+# 8605 files 
+
+cm42.bats$fullpath <- paste0(cm42.bats$path12, cm42.bats$filename) # there was a double "/" caused by the code I was using earlier - this fixes it 
+head(cm42.bats$fullpath)
+
+
+cm42.subset1 <- cm42.bats %>% 
+  select(filename, fullpath, 
+                      DATE, TIME, HOUR, 
+                      DATE.12, TIME.12, HOUR.12, 
+                      autoid, site, month) %>% droplevels()
+summary(cm42.subset1)
+# 8605 obs of 11 vars
+
+test <- unique(cm42.subset1$fullpath)
+#8605 unique file paths - good!
+
+## Now try copying over CM-42 files... 
+# CM-42 8605
+cm42_files <- as.list(cm42.subset1$fullpath)
+cm42_files_list <- unlist(cm42_files)
+
+dir.create("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-42_subset1")
+
+## This will take a while: 
+file.copy(from = cm42_files_list,
+            to = "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-42_subset1")
+  beep()
+  
+## awww bless it, no warnings <3 
+  
+  ## attach metadata
+  write.csv(cm42.subset1, 
+            "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Judith/CM-42_subset1/CM42_JudithSubset1_meta.csv" )
 
 ```
 
