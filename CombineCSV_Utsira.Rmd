@@ -1,0 +1,90 @@
+---
+title: "CombineCSV_Utsira"
+output: html_document
+date: "2026-10-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Prepare workspace
+```{r}
+library(data.table)
+library(tidyverse)
+library(beepr)
+library(lubridate)
+library(purrr)
+library(janitor)
+library(renv)
+library(stringr)
+library(beepr)
+library(randomcoloR)
+library(wesanderson)
+library(leaflegend)
+library(osmdata)
+library(MetBrewer)
+library(colorBlindness)
+library(colorblindcheck)
+#devtools::install_github("BlakeRMills/MoMAColors")
+library(MoMAColors)
+
+getwd()
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
+
+## Setup output directory 
+output <-"C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed" # where you want to save your data
+
+file.name <- "CombineCSV_Utsira"
+
+todays_date <- Sys.Date()
+ 
+dir.name <- str_c(output,"/", file.name, "_", todays_date)
+dir.name
+ 
+output_today <- dir.name
+output_today
+
+dir.create(output_today)
+output_today
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/CombineCSV_Utsira_2026-10-23"
+
+```
+
+
+
+
+
+### Inputs 
+```{r}
+
+#### CM-01
+
+# 2024 (Bø)
+
+# 2025 (RAM)
+
+# 2026 (RAM)
+
+
+#### CM-02
+
+# 2024 (Bø)
+
+# 2025 (RAM)
+
+# 2026 (RAM)
+
+
+#### UT-01
+
+# 2024 (Bø)
+
+# 2025 (MZ)
+
+
+
+```
+
+
