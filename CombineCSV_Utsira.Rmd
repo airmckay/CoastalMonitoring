@@ -31,24 +31,16 @@ knitr::opts_chunk$set(echo = TRUE)
 # remotes::install_version("readr", version = "2.1.4")
 
 
+install.packages(c("vctrs", "rlang", "tibble"))
+update.packages(ask = FALSE, checkBuilt = TRUE)
+
 library(data.table)
 library(tidyverse)
 library(beepr)
 library(lubridate)
 library(purrr)
-library(janitor)
-library(renv)
 library(stringr)
-library(beepr)
-library(randomcoloR)
-library(wesanderson)
-library(leaflegend)
 library(osmdata)
-library(MetBrewer)
-library(colorBlindness)
-library(colorblindcheck)
-#devtools::install_github("BlakeRMills/MoMAColors")
-library(MoMAColors)
 library(readr)
 
 getwd()
@@ -97,10 +89,107 @@ c126i <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2026/CM-01/WAV/KPRO_V
 c126ii <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2026/CM-01/WAV/KPRO_V1_27.07.2026_CM-01/id.csv") 
 #7988 of 44
 
+
+### Now combine for one UT-01 dataset 
+names(c124)
+names(c125)
+names(c126i)
+names(c126ii)
+
+## Fix the name on the AUTOID column 
+c124 <- c124 |> dplyr::rename("MANUAL ID" = "MANUAL ID*")
+c125 <- c125 |> dplyr::rename("AUTO ID" = "AUTO ID*")
+c126i <- c126i |> dplyr::rename("AUTO ID" = "AUTO ID*")
+c126ii <- c126ii |> dplyr::rename("AUTO ID" = "AUTO ID*")
+
+# Add analyst name column 
+c124$analyst <- "Benedikte Oeyen"
+c125$analyst <- "Reed April McKay"
+c126i$analyst <- "Reed April McKay"
+c126ii$analyst <- "Reed April McKay"
+
+names(c124)
+names(c125)
+names(c126i)
+names(c126ii)
+
+str(c124)
+str(c125)
+str(c126i)
+str(c126ii)
+
+### Convert date columns to date objects
+head(c125$DATE)
+head(c126i$DATE)
+head(c126ii$DATE)
+
+c126i$DATE <- as.Date(c126i$DATE, format = "%d/%m/%Y")
+c126ii$DATE <- as.Date(c126ii$DATE, format = "%d/%m/%Y")
+
+head(c126i$'DATE-12')
+head(c126ii$'DATE-12')
+
+c126i$'DATE-12' <- as.Date(c126i$'DATE-12', format = "%d/%m/%Y")
+c126ii$'DATE-12'<- as.Date(c126ii$'DATE-12', format = "%d/%m/%Y")
+
+### Convert time columns to character objects for now 
+c124$TIME <- as.character(c124$TIME)
+c124$'TIME-12' <- as.character(c124$'TIME-12')
+
+c125$TIME <- as.character(c125$TIME)
+c125$'TIME-12' <- as.character(c125$'TIME-12')
+
+c126i$TIME <- as.character(c126i$TIME)
+c126i$'TIME-12' <- as.character(c126i$'TIME-12')
+
+c126ii$TIME <- as.character(c126ii$TIME)
+c126ii$'TIME-12' <- as.character(c126ii$'TIME-12')
+
+c124df <- as.data.frame(c124)
+c125df <- as.data.frame(c125)
+c126idf <- as.data.frame(c126i)
+c126iidf <- as.data.frame(c126ii)
+
+summary(c124df)
+summary(c125df)
+summary(c126idf)
+summary(c126iidf)
+
+temp <- full_join(c124df, c125df)
+dim(c124df) + dim(c125df)
+dim(temp)
+# that works! 
+summary(temp)
+
+temp1 <- full_join(c126i, c126ii)
+dim(c126i) + dim(c126ii)
+dim(temp1)
+summary(temp1)
+# that works! 
+
+ut01df <- full_join(temp, temp1)
+ut01df$site <- "UT-01"
+dim(ut01df)
+
+dim(temp1) + dim(temp)
+#60235    47 - all checks out! 
+
+head(ut01df)
+str(ut01df)
+summary(ut01df)
+str(ut01df)  
+
+
+
+#### EXPORT
+#write.csv(ut01df, file = file.path(output_today, "UT01_combined_manualid_raw.csv"))
+#27.10.2026
+
 ############################################ CM-02
 
 # 2024 (Bø)
 c224 <- read_csv("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Benedikte/KPRO1/ID/ID/CM-02/id.csv")
+#576 of 44
 
 # 2025 (RAM)
 c225 <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2025/CM-02/WAV/KPRO_V1/id.csv") 
@@ -125,7 +214,22 @@ u124 <- read_csv("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Benedikt
 # 1146 of 44
 
 # 2025 (MZ)
-u125 <- read_csv("P:/Noctur/DataCollection_2025/Acoustics/UT-01/WAV/KPRO_NOC1/id.csv")
+u125a <- read_csv(
+  "P:/Noctur/DataCollection_2025/Acoustics/UT-01/WAV/KPRO_NOC1_05.09.2025/UT01_05.09.25_id.csv")
+#34423 of 44
+
+u125b <- read_csv(
+  "P:/Noctur/DataCollection_2025/Acoustics/UT-01/WAV/KPRO_NOC1_05.09.2025_B/UT01_05.09.25_B_id.csv")
+#15409 of 44
+
+u125c <- read_csv(
+  "P:/Noctur/DataCollection_2025/Acoustics/UT-01/WAV/KPRO_NOC1_13.10.2025/UT01_13.10.25_id.csv")
+#10337 of 44
+
+u125d <- read_csv(
+  "P:/Noctur/DataCollection_2025/Acoustics/UT-01/WAV/KPRO_NOC1_13.10.2025_B/UT01_13.10.25_B_id.csv")
+#7462 of 44
+
 
 
 ```
