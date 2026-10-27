@@ -11,24 +11,24 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Prepare workspace
 ```{r}
-# Remove potential problematic packages
-remove.packages(c("cpp11","tzdb","readr"))
-
-# Optionally, remove residual folders from your user library
-# (manually delete C:/Users/apmc/Rlibrary/cpp11 and C:/Users/apmc/Rlibrary/tzdb if they exist)
-
-# Reinstall in a clean state
-install.packages("cpp11")
-install.packages("readr", type = "source")
-
-
-
-library(pkgbuild)
-pkgbuild::has_build_tools(debug = TRUE)
-Sys.which("make")
-
-install.packages("remotes")
-remotes::install_version("readr", version = "2.1.4")
+# # Remove potential problematic packages
+# remove.packages(c("cpp11","tzdb","readr"))
+# 
+# # Optionally, remove residual folders from your user library
+# # (manually delete C:/Users/apmc/Rlibrary/cpp11 and C:/Users/apmc/Rlibrary/tzdb if they exist)
+# 
+# # Reinstall in a clean state
+# install.packages("cpp11")
+# install.packages("readr", type = "source")
+# 
+# 
+# 
+# library(pkgbuild)
+# pkgbuild::has_build_tools(debug = TRUE)
+# Sys.which("make")
+# 
+# install.packages("remotes")
+# remotes::install_version("readr", version = "2.1.4")
 
 
 library(data.table)
@@ -80,32 +80,52 @@ output_today
 ### Inputs 
 ```{r}
 
-#### CM-01
+############################################3#### CM-01
 
 # 2024 (Bø)
 c124 <- read_csv("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Benedikte/KPRO1/ID/ID/CM-01/id.csv")
-c124<-di
+#3373 of 44
 
 # 2025 (RAM)
+c125 <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2025/CM-01/WAV/KPRO_V1/id.csv") 
+#25298 of 44
 
 # 2026 (RAM)
+c126i <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2026/CM-01/WAV/KPRO_V1_12.05.2026_CM-01/id.csv") 
+#23576 of 44
 
+c126ii <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2026/CM-01/WAV/KPRO_V1_27.07.2026_CM-01/id.csv") 
+#7988 of 44
 
-#### CM-02
+############################################ CM-02
 
 # 2024 (Bø)
-di <- read_csv("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Benedikte/KPRO1/ID/ID/CM-01/id.csv")
+c224 <- read_csv("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Benedikte/KPRO1/ID/ID/CM-02/id.csv")
+
 # 2025 (RAM)
+c225 <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2025/CM-02/WAV/KPRO_V1/id.csv") 
+#12952 of 44
 
-# 2026 (RAM)
+# 2026 (RAM) 
+c226i <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2026/CM-02/WAV/KPRO_V1_13.05.2026_CM-02/id.csv") 
+#8158 of 44
 
+# pt2 
+c226ii <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2026/CM-02/WAV/KPRO_V1_27.07.2026_CM-02/id.csv") 
+#7335 of 44
+# Warning message:
+# One or more parsing issues, call `problems()` on your data frame for details, e.g.:
+#   dat <- vroom(...)
+#   problems(dat) 
 
-#### UT-01
+############################################ UT-01
 
 # 2024 (Bø)
+u124 <- read_csv("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Benedikte/KPRO1/ID/ID/UT-01/id.csv")
+# 1146 of 44
 
 # 2025 (MZ)
-
+u125 <- read_csv("P:/Noctur/DataCollection_2025/Acoustics/UT-01/WAV/KPRO_NOC1/id.csv")
 
 
 ```
