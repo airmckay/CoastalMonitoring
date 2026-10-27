@@ -11,6 +11,26 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Prepare workspace
 ```{r}
+# Remove potential problematic packages
+remove.packages(c("cpp11","tzdb","readr"))
+
+# Optionally, remove residual folders from your user library
+# (manually delete C:/Users/apmc/Rlibrary/cpp11 and C:/Users/apmc/Rlibrary/tzdb if they exist)
+
+# Reinstall in a clean state
+install.packages("cpp11")
+install.packages("readr", type = "source")
+
+
+
+library(pkgbuild)
+pkgbuild::has_build_tools(debug = TRUE)
+Sys.which("make")
+
+install.packages("remotes")
+remotes::install_version("readr", version = "2.1.4")
+
+
 library(data.table)
 library(tidyverse)
 library(beepr)
@@ -29,6 +49,7 @@ library(colorBlindness)
 library(colorblindcheck)
 #devtools::install_github("BlakeRMills/MoMAColors")
 library(MoMAColors)
+library(readr)
 
 getwd()
 # "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
@@ -62,6 +83,8 @@ output_today
 #### CM-01
 
 # 2024 (Bø)
+c124 <- read_csv("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Benedikte/KPRO1/ID/ID/CM-01/id.csv")
+c124<-di
 
 # 2025 (RAM)
 
@@ -71,7 +94,7 @@ output_today
 #### CM-02
 
 # 2024 (Bø)
-
+di <- read_csv("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Benedikte/KPRO1/ID/ID/CM-01/id.csv")
 # 2025 (RAM)
 
 # 2026 (RAM)
