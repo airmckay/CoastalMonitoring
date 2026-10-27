@@ -179,10 +179,12 @@ str(ut01df)
 summary(ut01df)
 str(ut01df)  
 
-
+cm01 <- ut01df 
+cm01$site <- "CM-01" 
+dim(cm01)
 
 #### EXPORT
-#write.csv(ut01df, file = file.path(output_today, "UT01_combined_manualid_raw.csv"))
+#write.csv(cm01, file = file.path(output_today, "CM01_combined_manualid_raw.csv"))
 #27.10.2026
 
 ############################################ CM-02
@@ -206,6 +208,109 @@ c226ii <- read_csv("P:/SW_CoastalMonitoring/Data_collection_2026/CM-02/WAV/KPRO_
 # One or more parsing issues, call `problems()` on your data frame for details, e.g.:
 #   dat <- vroom(...)
 #   problems(dat) 
+
+
+### Now combine for one UT-01 dataset 
+names(c224)
+names(c225)
+names(c226i)
+names(c226ii)
+
+## Fix the name on the AUTOID column 
+c224 <- c224 |> dplyr::rename("MANUAL ID" = "MANUAL ID*")
+c225 <- c225 |> dplyr::rename("AUTO ID" = "AUTO ID*")
+c226i <- c226i |> dplyr::rename("AUTO ID" = "AUTO ID*")
+c226ii <- c226ii |> dplyr::rename("AUTO ID" = "AUTO ID*")
+
+# Add analyst name column 
+c224$analyst <- "Benedikte Oeyen"
+c225$analyst <- "Reed April McKay"
+c226i$analyst <- "Reed April McKay"
+c226ii$analyst <- "Reed April McKay"
+
+names(c224)
+names(c225)
+names(c226i)
+names(c226ii)
+
+str(c224)
+str(c225)
+str(c226i)
+str(c226ii)
+
+### Convert date columns to date objects
+head(c224$DATE)
+head(c225$DATE)
+head(c226i$DATE)
+head(c226ii$DATE)
+
+c226i$DATE <- as.Date(c226i$DATE, format = "%d/%m/%Y")
+c226ii$DATE <- as.Date(c226ii$DATE, format = "%d/%m/%Y")
+
+head(c226i$'DATE-12')
+head(c226ii$'DATE-12')
+
+c226i$'DATE-12' <- as.Date(c226i$'DATE-12', format = "%d/%m/%Y")
+c226ii$'DATE-12'<- as.Date(c226ii$'DATE-12', format = "%d/%m/%Y")
+
+head(c226i$'DATE-12')
+head(c226ii$'DATE-12')
+
+### Convert time columns to character objects for now 
+c224$TIME <- as.character(c224$TIME)
+c224$'TIME-12' <- as.character(c224$'TIME-12')
+
+c225$TIME <- as.character(c225$TIME)
+c225$'TIME-12' <- as.character(c225$'TIME-12')
+
+c226i$TIME <- as.character(c226i$TIME)
+c226i$'TIME-12' <- as.character(c226i$'TIME-12')
+
+c226ii$TIME <- as.character(c226ii$TIME)
+c226ii$'TIME-12' <- as.character(c226ii$'TIME-12')
+
+c224df <- as.data.frame(c224)
+c225df <- as.data.frame(c225)
+c226idf <- as.data.frame(c226i)
+c226iidf <- as.data.frame(c226ii)
+
+summary(c224df)
+summary(c225df)
+summary(c226idf)
+summary(c226iidf)
+
+temp <- full_join(c224df, c225df)
+dim(c224df) + dim(c225df)
+dim(temp)
+# that works! 
+summary(temp)
+
+temp1 <- full_join(c226i, c226ii)
+dim(c226i) + dim(c226ii)
+dim(temp1)
+summary(temp1)
+# that works! 
+
+ut02df <- full_join(temp, temp1)
+ut02df$site <- "UT-02"
+dim(ut02df)
+
+dim(temp1) + dim(temp)
+#29021    47 - all checks out! 
+
+head(ut02df)
+str(ut02df)
+summary(ut02df)
+str(ut02df)  
+
+cm02 <- ut02df 
+cm02$site <- "CM-02"
+dim(cm02)
+
+#### EXPORT
+#write.csv(cm02, file = file.path(output_today, "CM02_combined_manualid_raw.csv"))
+#27.10.2026
+
 
 ############################################ UT-01
 
@@ -231,7 +336,147 @@ u125d <- read_csv(
 #7462 of 44
 
 
+### Now combine for one UT-01 dataset 
+names(u124)
+names(u125a)
+names(u125b)
+names(u125c)
+names(u125d)
 
+## Fix the name on the AUTOID column 
+u124 <- u124 |> dplyr::rename("MANUAL ID" = "MANUAL ID*")
+u125a <- u125a |> dplyr::rename("AUTO ID" = "AUTO ID*")
+u125b <- u125b |> dplyr::rename("AUTO ID" = "AUTO ID*")
+u125c <- u125c |> dplyr::rename("AUTO ID" = "AUTO ID*")
+u125d <- u125d |> dplyr::rename("AUTO ID" = "AUTO ID*")
+
+# Add analyst name column 
+u124$analyst <- "Benedikte Oeyen"
+u125a$analyst <- "Mara Zebele"
+u125b$analyst <- "Mara Zebele"
+u125c$analyst <- "Mara Zebele"
+u125d$analyst <- "Mara Zebele"
+
+names(u124)
+names(u125a)
+names(u125b)
+names(u125c)
+names(u125d)
+
+str(u124)
+str(u125a)
+str(u125b)
+str(u125c)
+str(u125d)
+
+### Convert date columns to date objects
+head(u124$DATE)
+head(u125a$DATE)
+head(u125b$DATE)
+head(u125c$DATE)
+head(u125d$DATE)
+
+
+### Convert time columns to character objects for now 
+u124$TIME <- as.character(u124$TIME)
+u124$'TIME-12' <- as.character(u124$'TIME-12')
+
+u125a$TIME <- as.character(u125a$TIME)
+u125a$'TIME-12' <- as.character(u125a$'TIME-12')
+
+u125b$TIME <- as.character(u125b$TIME)
+u125b$'TIME-12' <- as.character(u125b$'TIME-12')
+
+u125c$TIME <- as.character(u125c$TIME)
+u125c$'TIME-12' <- as.character(u125c$'TIME-12')
+
+u125d$TIME <- as.character(u125d$TIME)
+u125d$'TIME-12' <- as.character(u125d$'TIME-12')
+
+u124df <- as.data.frame(u124)
+u125adf <- as.data.frame(u125a)
+u125bdf <- as.data.frame(u125b)
+u125cdf <- as.data.frame(u125c)
+u125ddf <- as.data.frame(u125d)
+
+
+summary(u124df)
+summary(u125adf)
+summary(u125bdf)
+summary(u125cdf)
+summary(u125ddf)
+
+temp <- full_join(u124df, u125adf)
+dim(u124df) + dim(u125adf)
+dim(temp)
+# that works! 
+summary(temp)
+
+temp1 <- full_join(u125bdf, u125cdf)
+dim(u125bdf) + dim(u125cdf)
+dim(temp1)
+summary(temp1)
+# that works! 
+
+temp2 <- full_join(temp1, u125ddf)
+dim(temp1) + dim(u125ddf)
+dim(temp2)
+summary(temp2)
+# that works! 
+
+ut01noc_df <- full_join(temp, temp2)
+ut01noc_df$site <- "UT-01"
+dim(ut01noc_df)
+
+dim(u124df) + dim(u125adf) + dim(u125bdf) + dim(u125cdf) + dim(u125ddf)
+#68777    225 - all checks out! 
+
+head(ut01noc_df)
+
+ut01 <- ut01noc_df
+head(ut01$site)
+dim(ut01)
+names(ut01)
+# 68777    47
+
+#### EXPORT
+#write.csv(ut01, file = file.path(output_today, "UT01_combined_manualid_raw.csv"))
+#27.10.2026
+
+
+names(cm01)
+names(cm02)
+names(ut01)
+
+dim(cm01)# 
+# 60235    47
+
+dim(cm02)
+# 29021    47
+
+dim(ut01)
+# 68777    47
+
+
+### Now one big nasty dataset
+bigtemp <- full_join(cm01, cm02)
+dim(bigtemp)
+60235+29021
+# checks out! 
+
+DF <- full_join(bigtemp, ut01)
+dim(DF)
+# 158033     47
+dim(bigtemp) + dim(ut01)
+# 158033     
+
+# looking good!
+
+summary(DF)
+
+#### EXPORT
+#write.csv(DF, file = file.path(output_today, "Utsira_AllSites_combined_manualid_raw.csv"))
+#27.10.2026
 ```
 
 
