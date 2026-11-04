@@ -1,0 +1,171 @@
+---
+title: "CleaningUtsiraManualIDs"
+output: html_document
+date: "2026-10-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Prepare workspace
+```{r}
+
+library(data.table)
+library(tidyverse)
+library(beepr)
+library(lubridate)
+library(purrr)
+library(stringr)
+library(osmdata)
+library(readr)
+library(dplyr)
+
+getwd()
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
+
+## Setup output directory 
+output <-"C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed" # where you want to save your data
+
+file.name <- "CleaningUtsiraManualIDs"
+
+todays_date <- Sys.Date()
+ 
+dir.name <- str_c(output,"/", file.name, "_", todays_date)
+dir.name
+ 
+output_today <- dir.name
+output_today
+
+dir.create(output_today)
+output_today
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/CombineCSV_Utsira_2026-10-23"
+
+```
+
+
+
+## Import data
+```{r}
+
+df <- read_csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/CombineCSV_Utsira_2026-10-27/Utsira_AllSites_combined_manualid_raw.csv")
+
+dim(df)
+# 158033     48
+
+names(df)
+#  [1] "...1"          "INDIR"         "OUTDIR"        "FOLDER"        "IN FILE"       "CHANNEL"      
+#  [7] "OFFSET"        "DURATION"      "OUT FILE FS"   "OUT FILE ZC"   "DATE"          "TIME"         
+# [13] "HOUR"          "DATE-12"       "TIME-12"       "HOUR-12"       "AUTO ID"       "PULSES"       
+# [19] "MATCHING"      "MATCH RATIO"   "MARGIN"        "ALTERNATE 1"   "ALTERNATE 2"   "N"            
+# [25] "Fc"            "Sc"            "Dur"           "Fmax"          "Fmin"          "Fmean"        
+# [31] "TBC"           "Fk"            "Tk"            "S1"            "Tc"            "Qual"         
+# [37] "FILES"         "MANUAL ID"     "ORGID"         "USERID"        "REVIEW ORGID"  "REVIEW USERID"
+# [43] "INPATHMD5"     "OUTPATHMD5FS"  "OUTPATHMD5ZC"  "analyst"       "﻿INDIR"         "site"    
+
+temp <- df |> select(c
+                    ('IN FILE', 'OUT FILE FS', DATE, 'DATE-12', 
+                      'AUTO ID', 'MANUAL ID','MATCH RATIO', analyst, site)) 
+
+
+temp1 <- temp |> rename(infile = 'IN FILE',
+          outfile = 'OUT FILE FS',
+          night = 'DATE-12',
+          autoid = 'AUTO ID',
+          manualid = 'MANUAL ID',
+          match.ratio = 'MATCH RATIO') |> 
+  dplyr::mutate(
+    infile = as.character(infile), 
+    outfile = as.character(outfile), 
+    autoid = factor(autoid),
+         manualid = factor(manualid),
+         analyst = factor(analyst),
+         site = factor(site))
+
+str(temp1)
+temp1 <- as.data.frame(temp1)
+
+summary(temp1)
+dim(temp1)
+# 158033      9
+## Now check that everything without a manual id is autoid noise 
+
+temp2 <- temp1 |> filter(is.na(manualid)) 
+dim(temp2)
+# 142194      9
+
+summary(temp2)
+summary(temp2$manualid)
+summary(temp2$autoid)
+
+## NEARLY all of these are Noise... 
+# BARBAR EPTNIL MYOBRA MYODAU MYOMYS MYONAT   NoID  Noise NYCNOC PIPNAT PIPPYG VESMUR 
+#      0      7      0      0      0      0     30 142150      1      6      0      0 
+
+whothis <- temp2 |> filter(autoid != "Noise")
+# 44 obs 
+summary(whothis)
+## All of these are from CM-02 in 2026 and I was the only analyst, so something has been overlooked by me!
+
+## I manually checked these 44 files in KPRO - they are all Noise files. 
+## Now to slice and dice these files back into the main dataset with the correct manual ID. 
+
+whothis$manualid <- "Noise"
+whothis$manualid <- factor(whothis$manualid)
+
+wholist <- whothis$outfile 
+wholist
+## 
+
+temp3 <- temp1 |> dplyr::filter(!(outfile %in% wholist)) 
+nrow(temp1) - nrow(temp3)
+# 44 - good!
+
+temp4 <- full_join(temp3, whothis)
+dim(temp4)
+summary(temp4)
+# 158033      9 - good! Fixed!! Now we can move on to cleaning manual ids
+
+#write.csv(temp4, file = file.path(output_today, "combinedUtsira_CM02_2026_errorfixed.csv"))
+#4.11.2026
+
+temp5 <- temp4 |> filter(manualid != "NA") 
+#15883 obs of 9 vars
+
+summary(temp5)
+levels(temp5$manualid)
+# "CNIL"   "CNIL.B" "ENIL"   "NNOC"   "NoID"   "Noise"  "NYCT"   "PNAT"   "PNAT.B" "PPYG"   "PPYG.B"
+
+## Cleaning the manual IDs is going ot be pretty straightforward. 
+
+DF <- temp5 |> mutate(Mid = factor(case_when(
+  manualid == "CNIL" ~ "CNIL",
+  manualid == "CNIL.B" ~ "CNIL",
+  manualid == "ENIL" ~ "CNIL", 
+  manualid == "NNOC" ~ "NNOC", 
+  manualid == "NoID" ~ "NoID", 
+  manualid == "Noise" ~ "Noise", 
+  manualid == "NYCT" ~ "NYCT", 
+  manualid == "PNAT" ~ "PNAT", 
+  manualid == "PNAT.B" ~ "PNAT", 
+  manualid == "PPYG" ~ "PPYG", 
+  manualid == "PPYG.B" ~ "PPYG"))) |> 
+  mutate(behavior = factor(case_when(
+    str_detect(manualid, ".B") ~ "Feeding",
+    TRUE ~ "Commuting"
+  )))
+
+24/15859 # .15% feeding buzzes
+14599/15859 # 92% were classified as Noise
+15859-14599
+summary(DF)
+
+# write.csv(DF, file= file.path(output_today, "Utsira_ManualID_cleaned.csv"))
+
+```
+
+
+# Important summary notes for DF - Utsira cleaned and combined 
+
+15883 files were manually verified by 3 different analyses (BØ = 5095, MZ = 927, RAM = 4485) across 3 different sites (CM-01 = 10471, CM-02 = 927, UT-01 = 4485). Only 24 of the recordings (.15%) included feeding buzzes, the rest were classified as commuting passes. There were 1260 recordings that were verified as bat passes, the rest (14599, 92%) were classified as Noise. 
