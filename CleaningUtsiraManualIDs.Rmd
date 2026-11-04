@@ -139,7 +139,7 @@ levels(temp5$manualid)
 
 ## Cleaning the manual IDs is going ot be pretty straightforward. 
 
-DF <- temp5 |> mutate(Mid = factor(case_when(
+DF <- temp5 |> dplyr::mutate(Mid = factor(dplyr::case_when(
   manualid == "CNIL" ~ "CNIL",
   manualid == "CNIL.B" ~ "CNIL",
   manualid == "ENIL" ~ "CNIL", 
@@ -151,8 +151,8 @@ DF <- temp5 |> mutate(Mid = factor(case_when(
   manualid == "PNAT.B" ~ "PNAT", 
   manualid == "PPYG" ~ "PPYG", 
   manualid == "PPYG.B" ~ "PPYG"))) |> 
-  mutate(behavior = factor(case_when(
-    str_detect(manualid, ".B") ~ "Feeding",
+  dplyr::mutate(behavior = factor(dplyr::case_when(
+    stringr::str_detect(manualid, ".B") ~ "Feeding",
     TRUE ~ "Commuting"
   )))
 
@@ -163,9 +163,188 @@ summary(DF)
 
 # write.csv(DF, file= file.path(output_today, "Utsira_ManualID_cleaned.csv"))
 
+
+temp6 <- temp5 |> filter(autoid == "Noise")
+summary(temp6)
 ```
 
 
 # Important summary notes for DF - Utsira cleaned and combined 
 
 15883 files were manually verified by 3 different analyses (BØ = 5095, MZ = 927, RAM = 4485) across 3 different sites (CM-01 = 10471, CM-02 = 927, UT-01 = 4485). Only 24 of the recordings (.15%) included feeding buzzes, the rest were classified as commuting passes. There were 1260 recordings that were verified as bat passes, the rest (14599, 92%) were classified as Noise. 
+
+-Ask Maris for an overview of the number of detector nights for the Utsira detectors
+
+## Visualizing the data 
+```{r}
+DF1 <- DF |> filter (Mid != "Noise") |> 
+  dplyr::mutate(taxa = factor(case_when(
+    Mid == "CNIL" ~ "C. nilssonii",
+    Mid == "NNOC" ~ "N. noctula", 
+    Mid == "NoID" ~ "Unknown bat", 
+    Mid == "NYCT" ~ "Nyctaloid", 
+    Mid == "PNAT" ~ "P. nathusii", 
+    Mid == "PPYG" ~ "P. pygmaeus"))) |> droplevels()
+summary(DF1)
+
+# 
+# ## Table overview 
+# # Optional: drop rows with missing site or taxon
+# temp1_clean <- DF1 %>% filter(!is.na(site), !is.na(taxa))
+# 
+# counts <- temp1_clean %>%
+#   group_by(site, taxa) %>%
+#   summarise(n = n(), .groups = "drop")
+# 
+# wide <- counts %>%
+#   pivot_wider(names_from = site, values_from = n, values_fill = 0)
+# 
+# # Add a total per taxon (sum across site columns)
+# numeric_cols <- setdiff(names(wide), "taxon")
+# wide <- wide %>% mutate(Total = rowSums(across(all_of(numeric_cols))))
+
+# wide
+#   taxa         `CM-01` `CM-02` `UT-01`
+#   <fct>          <int>   <int>   <int>
+# 1 C. nilssonii      14       8      19
+# 2 N. noctula         6       1       0
+# 3 P. nathusii      344     249     580
+# 4 P. pygmaeus        3       4      12
+# 5 Nyctaloid          0       6      37
+# 6 Unknown bat        0       0       1
+
+## I checked - the one Unknown bat is a northern bat. 
+### Note to self - Change this in the OG dataset!! 
+
+DF2 <- DF1  |> 
+  dplyr::mutate(taxa = factor(case_when(
+    Mid == "CNIL" ~ "C. nilssonii",
+    Mid == "NNOC" ~ "N. noctula", 
+    Mid == "NoID" ~ "C. nilssonii", 
+    Mid == "NYCT" ~ "Nyctaloid", 
+    Mid == "PNAT" ~ "P. nathusii", 
+    Mid == "PPYG" ~ "P. pygmaeus"))) |> droplevels()
+
+
+## Table overview 
+# Optional: drop rows with missing site or taxon
+temp1_clean <- DF2 %>% filter(!is.na(site), !is.na(taxa))
+
+counts <- temp1_clean %>%
+  group_by(site, taxa) %>%
+  summarise(n = n(), .groups = "drop")
+
+wide <- counts %>%
+  pivot_wider(names_from = site, values_from = n, values_fill = 0)
+
+wide
+#   taxa         `CM-01` `CM-02` `UT-01`
+#   <fct>          <int>   <int>   <int>
+# 1 C. nilssonii      14       8      20
+# 2 N. noctula         6       1       0
+# 3 P. nathusii      344     249     580
+# 4 P. pygmaeus        3       4      12
+# 5 Nyctaloid          0       6      37
+
+
+
+############ PNAT 
+library(lubridate)
+DF2$jnight <- yday(DF2$night)
+pnat <- DF2 |> filter(Mid == "PNAT") |> droplevels()
+
+pnat1 <- pnat %>%
+  group_by(site, jnight) %>%
+  summarise(n = n(), .groups = "drop")
+
+ggplot(pnat1, aes(x = jnight, y = n, colour = site)) +
+  geom_point(size = 4) +
+  labs(x = "", y = "Bat passes per night", colour = "Site",
+       title = expression(italic("Pipistrellus nathusii"))) +
+  theme_minimal(base_size = 14) +
+  facet_wrap(~ site, nrow = 3) +
+  scale_colour_manual(values = c("CM-01" = "#28628c",
+                                 "CM-02" = "#28628c",
+                                 "UT-01" = "#323232")) + 
+ guides(color = "none")
+
+
+############ CNIL 
+
+cnil <- DF2 |> filter(Mid == "CNIL") |> droplevels()
+
+cnil1 <- cnil %>%
+  group_by(site, jnight) %>%
+  summarise(n = n(), .groups = "drop")
+
+ggplot(cnil1, aes(x = jnight, y = n, colour = site)) +
+  geom_point(size = 4) +
+  labs(x = "", y = "Bat passes per night", colour = "Site",
+       title = expression(italic("Cnephaeus nilssonii"))) +
+  theme_minimal(base_size = 16) +
+  facet_wrap(~ site, nrow = 3) +
+  scale_colour_manual(values = c("CM-01" = "#28628c",
+                                 "CM-02" = "#28628c",
+                                 "UT-01" = "#323232")) + 
+ guides(color = "none")
+
+
+############ NYCT 
+
+ppyg <- DF2 |> filter(Mid == "PPYG") |> droplevels()
+
+ppyg1 <- ppyg %>%
+  group_by(site, jnight) %>%
+  summarise(n = n(), .groups = "drop")
+
+ggplot(ppyg1, aes(x = jnight, y = n, colour = site)) +
+  geom_point(size = 4) +
+  labs(x = "", y = "Bat passes per night", colour = "Site",
+       title = expression(italic("Pipistrellus pygmaeus"))) +
+  theme_minimal(base_size = 16) +
+  facet_wrap(~ site, nrow = 3) +
+  scale_colour_manual(values = c("CM-01" = "#28628c",
+                                 "CM-02" = "#28628c",
+                                 "UT-01" = "#323232")) + 
+ guides(color = "none")
+
+
+############ NNOC
+
+NNOC <- DF2 |> filter(Mid == "NNOC") |> droplevels()
+
+NNOC1 <- NNOC %>%
+  group_by(site, jnight) %>%
+  summarise(n = n(), .groups = "drop")
+
+ggplot(NNOC1, aes(x = jnight, y = n, colour = site)) +
+  geom_point(size = 4) +
+  labs(x = "", y = "Bat passes per night", colour = "Site",
+       title = expression(italic("Nyctalus noctula"))) +
+  theme_minimal(base_size = 16) +
+  facet_wrap(~ site, nrow = 3) +
+  scale_colour_manual(values = c("CM-01" = "#28628c",
+                                 "CM-02" = "#28628c",
+                                 "UT-01" = "#323232")) + 
+ guides(color = "none")
+
+############ PPYG 
+
+NYCT <- DF2 |> filter(Mid == "NYCT") |> droplevels()
+
+NYCT1 <- NYCT %>%
+  group_by(site, jnight) %>%
+  summarise(n = n(), .groups = "drop")
+
+ggplot(NYCT1, aes(x = jnight, y = n, colour = site)) +
+  geom_point(size = 4) +
+  labs(x = "", y = "Bat passes per night", colour = "Site",
+       title = expression(italic("Nyctaloids"))) +
+  theme_minimal(base_size = 16) +
+  facet_wrap(~ site, nrow = 3) +
+  scale_colour_manual(values = c("CM-01" = "#28628c",
+                                 "CM-02" = "#28628c",
+                                 "UT-01" = "#323232")) + 
+ guides(color = "none")
+```
+
