@@ -31,8 +31,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # remotes::install_version("readr", version = "2.1.4")
 
 
-install.packages(c("vctrs", "rlang", "tibble"))
-update.packages(ask = FALSE, checkBuilt = TRUE)
+# install.packages(c("vctrs", "rlang", "tibble"))
+# update.packages(ask = FALSE, checkBuilt = TRUE)
 
 library(data.table)
 library(tidyverse)

@@ -64,20 +64,25 @@ names(df)
 # [37] "FILES"         "MANUAL ID"     "ORGID"         "USERID"        "REVIEW ORGID"  "REVIEW USERID"
 # [43] "INPATHMD5"     "OUTPATHMD5FS"  "OUTPATHMD5ZC"  "analyst"       "﻿INDIR"         "site"    
 
-temp <- df |> select(c
-                    ('IN FILE', 'OUT FILE FS', DATE, 'DATE-12', 
+temp <- df |> dplyr::select(c
+                    ('IN FILE', 'OUT FILE FS', DATE, TIME ,HOUR, 
+                      'DATE-12', 'TIME-12', 'HOUR-12',
                       'AUTO ID', 'MANUAL ID','MATCH RATIO', analyst, site)) 
 
 
-temp1 <- temp |> rename(infile = 'IN FILE',
+temp1 <- temp |> dplyr::rename(infile = 'IN FILE',
           outfile = 'OUT FILE FS',
           night = 'DATE-12',
+          TIME.12 = "TIME-12",
+          HOUR.12 = "HOUR-12",
           autoid = 'AUTO ID',
           manualid = 'MANUAL ID',
           match.ratio = 'MATCH RATIO') |> 
   dplyr::mutate(
     infile = as.character(infile), 
-    outfile = as.character(outfile), 
+    outfile = as.character(outfile),
+    TIME = as.character(TIME),
+    TIME.12 = as.character(TIME.12), 
     autoid = factor(autoid),
          manualid = factor(manualid),
          analyst = factor(analyst),
@@ -88,12 +93,12 @@ temp1 <- as.data.frame(temp1)
 
 summary(temp1)
 dim(temp1)
-# 158033      9
+# 158033      13
 ## Now check that everything without a manual id is autoid noise 
 
-temp2 <- temp1 |> filter(is.na(manualid)) 
+temp2 <- temp1 |> dplyr::filter(is.na(manualid)) 
 dim(temp2)
-# 142194      9
+# 142194      13
 
 summary(temp2)
 summary(temp2$manualid)
@@ -103,7 +108,7 @@ summary(temp2$autoid)
 # BARBAR EPTNIL MYOBRA MYODAU MYOMYS MYONAT   NoID  Noise NYCNOC PIPNAT PIPPYG VESMUR 
 #      0      7      0      0      0      0     30 142150      1      6      0      0 
 
-whothis <- temp2 |> filter(autoid != "Noise")
+whothis <- temp2 |> dplyr::filter(autoid != "Noise")
 # 44 obs 
 summary(whothis)
 ## All of these are from CM-02 in 2026 and I was the only analyst, so something has been overlooked by me!
@@ -122,15 +127,15 @@ temp3 <- temp1 |> dplyr::filter(!(outfile %in% wholist))
 nrow(temp1) - nrow(temp3)
 # 44 - good!
 
-temp4 <- full_join(temp3, whothis)
+temp4 <- dplyr::full_join(temp3, whothis)
 dim(temp4)
 summary(temp4)
-# 158033      9 - good! Fixed!! Now we can move on to cleaning manual ids
+# 158033  13 - good! Fixed!! Now we can move on to cleaning manual ids
 
 #write.csv(temp4, file = file.path(output_today, "combinedUtsira_CM02_2026_errorfixed.csv"))
-#4.11.2026
+#10.11.2026
 
-temp5 <- temp4 |> filter(manualid != "NA") 
+temp5 <- temp4 |> dplyr::filter(manualid != "NA") 
 #15883 obs of 9 vars
 
 summary(temp5)

@@ -1,0 +1,185 @@
+---
+title: "KPROvsManualID"
+output: html_document
+date: "2026-11-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,      # show code if you want
+  results = 'hide', # do not show textual output in the final doc
+  fig.show = 'hide',# do not show plots in the final doc
+  message = FALSE,
+  warning = FALSE
+)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(data.table)
+library(tidyverse)
+library(beepr)
+library(lubridate)
+library(purrr)
+library(stringr)
+library(osmdata)
+library(readr)
+library(beepr)
+library(plotly)
+library(readxl)
+library(stringr)
+library(data.table)
+
+getwd()
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
+
+## Setup output directory 
+output <-"C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed" # where you want to save your data
+
+file.name <- "KPROvsManualID"
+
+todays_date <- Sys.Date()
+ 
+dir.name <- str_c(output,"/", file.name, "_", todays_date)
+dir.name
+ 
+output_today <- dir.name
+output_today
+
+dir.create(output_today)
+output_today
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/KPROvsManualID_2026-11-10"
+```
+
+
+```{r}
+df <- read_csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/CombineCSVs_Report2026_2026-11-10/CM_manualIDs_allavailable_subsets.csv")
+
+dim(df)
+names(df)
+str(df)
+
+DF <- df |> 
+  dplyr::select(-1) |> 
+  dplyr::mutate(
+    autoid = factor(autoid),
+    manualid = factor(manualid), 
+    analyst = factor(analyst), 
+    site = factor(site),
+    newauto = factor(newauto),
+    DATE = as.Date(DATE), 
+    DATE.12 = as.Date(DATE.12), 
+    TIME = as.character(TIME), 
+    TIME.12 = as.character(TIME.12))  
+
+summary(DF)
+names(DF)
+```
+
+
+
+```{r}
+## Check agreement manual vs autoid
+summary(DF$newauto)
+summary(DF$manualid)
+
+mysp <- DF |> 
+  dplyr::filter(manualid %in% c("MYSP", "MDAU") | newauto == "MYSP") |> 
+           droplevels() 
+
+summary(mysp)
+## Matches what we expect from the df1
+dim(mysp)
+# 9253   13
+
+## Check the amount of agreement between autoid and manual id 
+
+#Logistic regression to determine cut-off
+mysp_data <- DF %>%
+  dplyr::filter(newauto == "MYSP") %>%
+  dplyr::mutate(
+    mratio = as.numeric(MATCH.RATIO),
+    correct = ifelse(manualid%in% c("MYSP", "MDAU"), 1, 0)) %>%
+  dplyr::filter(!is.na(MATCH.RATIO))
+
+dim(mysp_data)
+# 4576   15
+
+ggplot2::ggplot(mysp_data) + 
+  ggplot2::geom_point(ggplot2::aes(x = MATCH.RATIO, y = correct))
+
+mysp_glm <- glm(
+  correct ~ MATCH.RATIO,
+  family = binomial,
+  data = mysp_data)
+
+summary(mysp_glm)
+# Coefficients:
+#             Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)   0.4140     0.1998   2.072   0.0382 *  
+# MATCH.RATIO   4.3016     0.3531  12.184   <2e-16 ***
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# (Dispersion parameter for binomial family taken to be 1)
+# 
+#     Null deviance: 1680.1  on 4575  degrees of freedom
+# Residual deviance: 1513.3  on 4574  degrees of freedom
+# AIC: 1517.3
+# 
+# Number of Fisher Scoring iterations: 6
+
+### Now visualize the level of agreement between KPRO and Frode based on this model 
+# Lagny data for kurven
+newdata <- data.frame(MATCH.RATIO = seq(min(mysp_data$MATCH.RATIO),
+                                   max(mysp_data$MATCH.RATIO),
+                                   length.out = 200))
+newdata$pred <- predict(mysp_glm, newdata, type = "response")
+
+# Show the level of agreement between manual id and autoid
+ggplot2::ggplot(mysp_data, ggplot2::aes(x = MATCH.RATIO, y = correct)) +
+  ggplot2::geom_point(alpha = 0.3) +
+  ggplot2::geom_line(data = newdata, ggplot2::aes(x = MATCH.RATIO, y = pred),
+            color = "blue", linewidth = 1) +
+  ggplot2::labs(x = "KPRO match ratio", y = "Predicted probability of correct") +
+  ggplot2::theme_minimal() +
+  ggplot2::ggtitle("Comparing KPRO vs Manual ID for Myotis species")
+
+# calculates the match ratio cut-off by inverting the logistic regression
+get_cutoff <- function(p, model) {
+  beta0 <- coef(model)[1]
+  beta1 <- coef(model)[2]
+  (log(p / (1 - p)) - beta0) / beta1
+}
+
+
+# target probabilities for which we want to know the match ratio
+target_probs <- c(0.5, 0.6, 0.7, 0.8, 0.9)
+
+#library(clustur)
+# create table with probability column and fill with values from get-cutoff + lost and retained calls + percentage
+loss_table <- data.frame(Probability = target_probs) %>%
+  dplyr::mutate(
+    Cutoff_Ratio = pmin(
+      sapply(Probability, get_cutoff, model = mysp_glm),
+      1),
+    Calls_retained = sapply(Cutoff_Ratio, function(c) 
+      sum(mysp_data$mratio >= c)),
+    Calls_lost = sapply(Cutoff_Ratio, function(c) 
+      sum(mysp_data$mratio < c)),
+    Percent_loss = round(
+      (Calls_lost / nrow(mysp_data)) * 100, 2 ) )
+
+print(loss_table)
+#   Probability Cutoff_Ratio Calls_retained Calls_lost Percent_loss
+# 1         0.5 -0.096254678           4576          0         0.00
+# 2         0.6 -0.001995066           4576          0         0.00
+# 3         0.7  0.100719035           4573          3         0.07
+# 4         0.8  0.226021065           4519         57         1.25
+# 5         0.9  0.414540290           4095        481        10.51
+
+## Looks like a .8 is a good estimate 
+
+```
+

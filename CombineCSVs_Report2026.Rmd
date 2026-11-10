@@ -1,0 +1,413 @@
+---
+title: "CombineCSVs_Report2026"
+output: html_document
+date: "2026-11-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,      # show code if you want
+  results = 'hide', # do not show textual output in the final doc
+  fig.show = 'hide',# do not show plots in the final doc
+  message = FALSE,
+  warning = FALSE
+)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(data.table)
+library(tidyverse)
+library(beepr)
+library(lubridate)
+library(purrr)
+library(stringr)
+library(osmdata)
+library(readr)
+library(beepr)
+library(plotly)
+library(readxl)
+library(stringr)
+library(data.table)
+
+getwd()
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/GitHubLink/CoastalMonitoring/CoastalMonitoring"
+
+## Setup output directory 
+output <-"C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed" # where you want to save your data
+
+file.name <- "CombineCSVs_Report2026"
+
+todays_date <- Sys.Date()
+ 
+dir.name <- str_c(output,"/", file.name, "_", todays_date)
+dir.name
+ 
+output_today <- dir.name
+output_today
+
+dir.create(output_today)
+output_today
+# "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/CombineCSV_Utsira_2026-10-23"
+```
+
+## Combine CSVs
+```{r}
+#########################################################
+# Judith MSc thesis - lake sites in Rogaland 2024
+jf <- read_csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Judith 6 lakes/JF_inputs/final_cm 1.csv")
+
+dim(jf)
+# 468400     39
+# Note that there are 3 different autoid columns and they all have NAs:( - to be continued 
+
+#########################################################
+# Utsira cleaned data - includes UT-01 data that needs to be dropped
+UT <- read_csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/CleaningUtsiraManualIDs_2026-11-10/Utsira_ManualID_cleaned.csv")
+dim(UT)
+# 15883    16
+output_today
+ut <- UT |> dplyr::filter(site != "UT-01") |> 
+  dplyr::mutate(TIME = as.character(TIME),
+                TIME.12 = as.character(TIME.12),
+                manualid = factor(manualid),
+                Mid = factor(manualid))
+names(ut)
+dim(ut)
+levels(ut$Mid)
+## Need to clean the Manual id columns and get down to just one 
+# 11398    16
+
+
+#########################################################
+# Sara's thesis - Coastal sites in Rogaland 2024 
+
+root <- "P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Sara/ID"
+
+csv_files <- list.files(root, pattern = "id.csv", recursive = TRUE, full.names = TRUE)
+# 9 csv files from 9 different sites 
+
+
+# Read all files and combine
+sk <- rbindlist(lapply(csv_files, fread), fill = TRUE)
+dim(sk)
+# 20101    46
+
+# Manual IDs need to be cleaned 
+
+```
+
+
+```{r}
+
+#########################################################
+# Judith Feldhaus dataset
+# clean the autoid columns
+# Simplify columns 
+
+names(jf)
+
+jf1 <- jf |> dplyr::select(c(IN.FILE, DATE, TIME, HOUR, DATE.12, TIME.12, HOUR.12, AUTO.ID, MATCH.RATIO, SITE, manual.id, AUTO.ID.))
+dim(jf1)
+# 468400     12
+
+jf2 <- jf1 |> dplyr::mutate(autoid = 
+                              factor(dplyr::case_when(
+                                is.na(AUTO.ID) ~ AUTO.ID., 
+                                TRUE ~ AUTO.ID))) |> 
+  dplyr::select(-c(AUTO.ID, AUTO.ID.))
+
+# Now there is one "clean auto id column with no NAs 
+# Need to make a new autoid column that is easy to compare with the manual ids 
+levels(jf2$autoid)
+ # [1] "BARBAR" "EPTNIL" "MYOBRA" "MYODAU" "MYOMYS" "MYONAT" "NoID"   "Noise" 
+ # [9] "NYCNOC" "PIPNAT" "PIPPYG" "PLEAUR" "VESMUR"
+
+jf3 <- jf2 |> dplyr::mutate(newauto = 
+                              factor(dplyr::case_when(
+                                autoid == "BARBAR" ~ "BBAR",
+                                autoid == "EPTNIL" ~ "CNIL",
+                                autoid %in% c("MYOBRA", "MYODAU", 
+                                              "MYOMYS", "MYONAT") ~ "MYSP", 
+                                
+                                autoid  ==  "NoID" ~ "NoID",
+                                autoid  ==  "Noise" ~ "Noise",
+                                autoid  ==  "NYCNOC" ~ "NNOC",
+                                autoid  ==  "PIPNAT" ~ "PNAT",
+                                autoid  ==  "PIPPYG" ~ "PPYG",
+                                autoid  ==  "PLEAUR" ~ "PAUR",
+                                autoid  ==  "VESMUR" ~ "NYCT")))
+
+names(jf3)
+
+## Rename and check the structure of the columns so they will combine well with the others
+
+
+jf4 <- jf3 |> 
+  dplyr::rename(site = SITE, 
+                manualid = manual.id,
+                filename = IN.FILE) |> 
+  dplyr::mutate(site = factor(site), 
+                manualid =factor(manualid),
+                analyst = factor("Judith Feldhaus")) |> 
+  dplyr::mutate(TIME = as.character(TIME), 
+                TIME.12 = as.character(TIME.12)) |> 
+  dplyr::filter(manualid != "NA") 
+
+summary(jf4)  
+dim(jf4)
+# 50545    13
+# Now only the manually verified files 
+
+names(jf4)
+#  [1] "filename"    "DATE"        "TIME"        "HOUR"        "DATE.12"    
+#  [6] "TIME.12"     "HOUR.12"     "MATCH.RATIO" "site"        "manualid"   
+# [11] "autoid"      "newauto"     "analyst"    
+
+## Clean the manualid column 
+
+levels(jf4$manualid)
+summary(jf4$manualid)
+
+whatthis <- jf4 |> dplyr::filter(manualid %in% c("?", "VMUR"))
+## I checked the VMUR file - it does look an awful lot like a VMUR social calls but not textbook song, could possibly be NNOC. WIll play it safe and call it NYCT. Not clear to me what "?" obs are, and there are not many, but their autoids tend to be those that are most likely to include bats - so I am assuming NoID
+
+jf5 <- jf4 |> 
+  dplyr::mutate(manualid = factor(
+    dplyr::case_when(
+    manualid == "?" ~ "NoID", 
+    manualid == "ENIL" ~ "CNIL",
+    manualid == "VMUR" ~ "NYCT",
+    TRUE ~ manualid
+  )))
+
+summary(jf5$manualid)
+
+#########################################################
+# Utisra dataset
+
+summary(ut)
+summary(ut$Mid)
+summary(ut$manualid)
+names(ut)
+#  [1] "...1"        "infile"      "outfile"     "DATE"        "night"      
+#  [6] "autoid"      "manualid"    "match.ratio" "analyst"     "site"       
+# [11] "Mid"         "behavior"    "analyst"
+
+str(ut)
+ut1 <- ut |>  dplyr::mutate(manualid = factor(dplyr::case_when(
+  manualid == "CNIL" ~ "CNIL",
+  manualid == "CNIL.B" ~ "CNIL",
+  manualid == "ENIL" ~ "CNIL", 
+  manualid == "NNOC" ~ "NNOC", 
+  manualid == "NoID" ~ "NoID", 
+  manualid == "Noise" ~ "Noise", 
+  manualid == "NYCT" ~ "NYCT", 
+  manualid == "PNAT" ~ "PNAT", 
+  manualid == "PNAT.B" ~ "PNAT", 
+  manualid == "PPYG" ~ "PPYG", 
+  manualid == "PPYG.B" ~ "PPYG"))) |> 
+  dplyr::mutate(filename = dplyr::case_when(
+    is.na(infile) ~ outfile, 
+                TRUE ~ infile)) |> 
+  dplyr::rename(DATE.12 = night, 
+         MATCH.RATIO = match.ratio) |> 
+  dplyr::select(-1) |> 
+  dplyr::select(-c(behavior, Mid, infile, outfile)) |> 
+  dplyr::mutate(newauto = 
+    factor(dplyr::case_when(
+    autoid == "BARBAR" ~ "BBAR",
+    autoid == "EPTNIL" ~ "CNIL",
+    autoid %in% c("MYOBRA", "MYODAU", 
+                  "MYOMYS", "MYONAT") ~ "MYSP", 
+    autoid  ==  "NoID" ~ "NoID",
+    autoid  ==  "Noise" ~ "Noise",
+    autoid  ==  "NYCNOC" ~ "NNOC",
+    autoid  ==  "PIPNAT" ~ "PNAT",
+    autoid  ==  "PIPPYG" ~ "PPYG",
+    autoid  ==  "PLEAUR" ~ "PAUR",
+    autoid  ==  "VESMUR" ~ "NYCT"))) 
+
+
+summary(ut1$filename)
+summary(ut1$manualid)
+summary(ut1$newauto)
+dim(ut1)
+# 11398    13
+
+names(ut1)
+#  [1] "DATE"        "TIME"        "HOUR"        "DATE.12"     "TIME.12"    
+#  [6] "HOUR.12"     "autoid"      "manualid"    "MATCH.RATIO" "analyst"    
+# [11] "site"        "filename"    "newauto"  
+
+#########################################################
+# Sara's thesis - Coastal sites in Rogaland 2024 
+
+summary(sk)
+names(sk)
+sk1 <- sk |> 
+  dplyr::select(c('IN FILE', DATE, TIME, HOUR, 
+                  'DATE-12', 'TIME-12', 'HOUR-12', 
+                  "AUTO ID", "MATCH RATIO","MANUAL ID*", 
+                  "AUTO ID*", "MANUAL ID")) |> 
+  dplyr::rename(
+  filename = 'IN FILE',
+  DATE.12 = 'DATE-12',
+  TIME.12 = 'TIME-12',
+  HOUR.12 = 'HOUR-12',
+  MATCH.RATIO = "MATCH RATIO",
+  A1 = "AUTO ID",
+  A2 = "AUTO ID*", 
+  M1 = "MANUAL ID",
+  M2 = "MANUAL ID*") 
+
+summary(sk1)
+
+sk2 <- sk1  |>  
+  dplyr::mutate(
+    autoid = factor(dplyr::case_when(
+    is.na(A1) ~ A2, 
+    TRUE ~ A1))) |> 
+  dplyr::mutate(
+    manualid = factor(dplyr::case_when(
+    is.na(M1) ~ M2, 
+    TRUE ~ M1))) |> 
+  dplyr::select(-c(M1, M2, A1, A2)) |> 
+  dplyr::mutate(newauto = 
+    factor(dplyr::case_when(
+    autoid == "BARBAR" ~ "BBAR",
+    autoid == "EPTNIL" ~ "CNIL",
+    autoid %in% c("MYOBRA", "MYODAU", 
+                  "MYOMYS", "MYONAT") ~ "MYSP", 
+    autoid  ==  "NoID" ~ "NoID",
+    autoid  ==  "Noise" ~ "Noise",
+    autoid  ==  "NYCNOC" ~ "NNOC",
+    autoid  ==  "PIPNAT" ~ "PNAT",
+    autoid  ==  "PIPPYG" ~ "PPYG",
+    autoid  ==  "PLEAUR" ~ "PAUR",
+    autoid  ==  "VESMUR" ~ "NYCT"))) |> 
+  dplyr::mutate(analyst = factor("Sara Kristoffersson")) 
+
+## Make a site column 
+sitemap <- sk |> 
+  dplyr::select("IN FILE", INDIR) |> 
+  dplyr::rename(filename = "IN FILE" ) |> 
+  unique()
+
+summary(sitemap)
+## super 
+head(sitemap$INDIR)
+sitemap$site <- factor(ifelse(grepl("CM-\\d{2}", sitemap$INDIR),
+                  sub(".*(CM-\\d{2}).*", "\\1", sitemap$INDIR),
+                  NA_character_)) 
+
+summary(sitemap$site)
+# CM-18 CM-19 CM-20 CM-22 CM-26 CM-28 CM-39 CM-40 CM-49 
+#   491  1262   972  5445  3089  5231   306  1111  2194 
+#Nice!
+
+sitemap <- sitemap |> dplyr::select(c(site, filename))
+
+sk3 <- dplyr::left_join(sk2, sitemap)
+
+## Now cleaning the manualids 
+summary(sk3$manualid)
+## Up to 3 different taxa per manual ID 
+
+## First lets simplify the noise recordings 
+sk4 <- sk3 |> dplyr::mutate(
+  mid = factor(dplyr::case_when(
+    str_detect(as.character(manualid), "Noise") ~ "Noise", 
+    TRUE ~ manualid))) 
+levels(sk4$mid)
+
+## Remove the behavior tags
+sk4$mid1 <- factor(gsub("\\.B", "", sk4$mid))
+levels(sk4$mid1)
+
+sk4$mid2 <- factor(gsub("\\.S", "", sk4$mid1))
+levels(sk4$mid2)
+
+sk4$mid3 <- factor(gsub("\\.T", "", sk4$mid2))
+levels(sk4$mid3)
+
+sk4$mid4 <- factor(gsub("ENIL", "CNIL", sk4$mid3))
+levels(sk4$mid4)
+
+sk4$mid5 <- factor(gsub("MYOT", "MYSP", sk4$mid4))
+levels(sk4$mid5)
+
+## Account for multiple bats in each pass 
+sk5 <- sk4 |> dplyr::select(-c(mid, mid1, mid2, mid3, mid4))
+summary(sk5)
+
+sk6 <- sk5 |> tidyr::separate_rows(mid5, sep = "_") |> 
+  dplyr::mutate(mid5 = factor(mid5))
+dim(sk6)
+# 22377    14
+
+summary(sk6$mid5)
+whatsthis <- sk6 |> dplyr::filter(mid5 == "NNOC.NYCT") |> droplevels()
+
+sk7 <- sk6 |> dplyr::mutate(manualid = factor(
+  dplyr::case_when(
+    mid5 == "NNOC.NYCT" ~ "NYCT", 
+    mid5 == "PPYG." ~ "PPYG",
+    TRUE ~ mid5 
+  ))) |> 
+  dplyr::select(-mid5) |> 
+  dplyr::mutate(DATE = as.Date(DATE), 
+                DATE.12 = as.Date(DATE.12))
+
+summary(sk7)
+summary(sk7$manualid)
+
+dim(sk7) # 22377    13
+dim(ut1) # 11398    13
+dim(jf4) # 50545    13
+
+names(sk7)
+names(ut1)
+names(jf4)
+
+## Sweet! Now we combine 
+
+temp <- dplyr::full_join(ut1, sk7)
+dim(temp)
+# 33775    13
+nrow(ut1) + nrow(sk7)
+# checks out, good!
+
+summary(temp)
+
+temp1 <- dplyr::full_join(temp, jf5)
+dim(temp1)
+nrow(temp) + nrow(jf4)
+
+# checks out, good!
+
+summary(temp1)
+
+DF <- temp1 |> 
+  dplyr::mutate(
+    autoid = factor(autoid),
+    manualid = factor(manualid), 
+    analyst = factor(analyst), 
+    site = factor(site),
+    newauto = factor(newauto)
+  )
+
+summary(DF)
+summary(DF$autoid)
+summary(DF$newauto)
+summary(DF$manualid)
+
+## Looking good! SEND IT!
+# write.csv(DF, file = file.path(output_today, "CM_manualIDs_allavailable_subsets.csv"))
+# 10.11.2026
+
+```
+
+
