@@ -161,13 +161,14 @@ DF <- temp5 |> dplyr::mutate(Mid = factor(dplyr::case_when(
     TRUE ~ "Commuting"
   )))
 
+
 24/15859 # .15% feeding buzzes
 14599/15859 # 92% were classified as Noise
 15859-14599
 summary(DF)
-
+levels(DF$Mid)
+#
 # write.csv(DF, file= file.path(output_today, "Utsira_ManualID_cleaned.csv"))
-
 
 temp6 <- temp5 |> filter(autoid == "Noise")
 summary(temp6)
