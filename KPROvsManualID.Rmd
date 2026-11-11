@@ -12,6 +12,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
+
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -54,9 +55,10 @@ output_today
 
 
 ```{r}
-df <- read_csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/CombineCSVs_Report2026_2026-11-10/CM_manualIDs_allavailable_subsets.csv")
+df <- read_csv("C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Analyses/Outputs/Reed/CombineCSVs_Report2026_2026-11-11/CM_manualIDs_allavailable_subsets.csv")
 
 dim(df)
+# 89556    14
 names(df)
 str(df)
 
@@ -75,14 +77,37 @@ DF <- df |>
 
 summary(DF)
 names(DF)
+# Looking good! 
+
+```
+
+```{r}
+## Overview of which sites have been validated when 
+ggplot(DF) + 
+  geom_point(aes(x= DATE, y = site, color = analyst), 
+             size = 3, alpha = 0.5) +
+  theme_minimal() + xlab("")  + ylab("")
+
+ggplot(DF |> filter(analyst != "Reed April McKay") |> droplevels()) + 
+  geom_point(aes(x= DATE, y = site, color = analyst), 
+             size = 3, alpha = 0.5) +
+  theme_minimal() + xlab("")  + ylab("") + 
+  ggtitle ("Overview of manually verified data - 2024 only")
+
+summary(DF)
+summary(DF$newauto)
+summary(DF$manualid)
+summary(DF$site)
+
 ```
 
 
-
+## Check agreement manual vs autoid - Myotis 
 ```{r}
-## Check agreement manual vs autoid
+## Check agreement manual vs autoid - Myotis 
 summary(DF$newauto)
 summary(DF$manualid)
+summary(DF$site)
 
 mysp <- DF |> 
   dplyr::filter(manualid %in% c("MYSP", "MDAU") | newauto == "MYSP") |> 
@@ -155,7 +180,7 @@ get_cutoff <- function(p, model) {
 
 
 # target probabilities for which we want to know the match ratio
-target_probs <- c(0.5, 0.6, 0.7, 0.8, 0.9)
+target_probs <- c(0.5, 0.6, 0.7, 0.8, 0.85, 0.9)
 
 #library(clustur)
 # create table with probability column and fill with values from get-cutoff + lost and retained calls + percentage
@@ -171,15 +196,638 @@ loss_table <- data.frame(Probability = target_probs) %>%
     Percent_loss = round(
       (Calls_lost / nrow(mysp_data)) * 100, 2 ) )
 
-print(loss_table)
 #   Probability Cutoff_Ratio Calls_retained Calls_lost Percent_loss
-# 1         0.5 -0.096254678           4576          0         0.00
-# 2         0.6 -0.001995066           4576          0         0.00
-# 3         0.7  0.100719035           4573          3         0.07
-# 4         0.8  0.226021065           4519         57         1.25
-# 5         0.9  0.414540290           4095        481        10.51
+# 1        0.50  -0.79763941           5995          0         0.00
+# 2        0.60  -0.58093577           5995          0         0.00
+# 3        0.70  -0.34479520           5995          0         0.00
+# 4        0.80  -0.05672478           5995          0         0.00
+# 5        0.85   0.12943015           5989          6         0.10
+# 6        0.90   0.37668250           5417        578         9.64
 
-## Looks like a .8 is a good estimate 
+## Looks like a .37 Match Ratio is a good estimate 
 
 ```
 
+
+
+## Check agreement manual vs autoid - Northern bats
+```{r}
+## Check agreement manual vs autoid - Northern bats
+summary(DF$newauto)
+summary(DF$manualid)
+summary(DF$site)
+
+cnil <- DF |> 
+  dplyr::filter(manualid == "CNIL" | newauto == "CNIL") |> 
+           droplevels() 
+
+summary(cnil)
+## Matches what we expect from the df1
+dim(cnil)
+# 23153    13
+
+## Check the amount of agreement between autoid and manual id 
+
+#Logistic regression to determine cut-off
+cnil_data <- DF %>%
+  dplyr::filter(newauto == "CNIL") %>%
+  dplyr::mutate(
+    mratio = as.numeric(MATCH.RATIO),
+    correct = ifelse(manualid == "CNIL", 1, 0)) %>%
+  dplyr::filter(!is.na(MATCH.RATIO))
+
+dim(cnil_data)
+# 7750   15
+
+ggplot2::ggplot(cnil_data) + 
+  ggplot2::geom_point(ggplot2::aes(x = MATCH.RATIO, y = correct))
+
+cnil_glm <- glm(
+  correct ~ MATCH.RATIO,
+  family = binomial,
+  data = cnil_data)
+
+summary(cnil_glm)
+# Coefficients:
+#             Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)  -0.3672     0.1946  -1.887   0.0591 .  
+# MATCH.RATIO   2.5512     0.2227  11.458   <2e-16 ***
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# (Dispersion parameter for binomial family taken to be 1)
+# 
+#     Null deviance: 6085.2  on 7749  degrees of freedom
+# Residual deviance: 5962.3  on 7748  degrees of freedom
+# AIC: 5966.3
+# 
+# Number of Fisher Scoring iterations: 4
+
+### Now visualize the level of agreement between KPRO and Frode based on this model 
+# Lagny data for kurven
+newdata <- data.frame(MATCH.RATIO = seq(min(cnil_data$MATCH.RATIO),
+                                   max(cnil_data$MATCH.RATIO),
+                                   length.out = 200))
+newdata$pred <- predict(cnil_glm, newdata, type = "response")
+
+# Show the level of agreement between manual id and autoid
+ggplot2::ggplot(cnil_data, ggplot2::aes(x = MATCH.RATIO, y = correct)) +
+  ggplot2::geom_point(alpha = 0.3) +
+  ggplot2::geom_line(data = newdata, ggplot2::aes(x = MATCH.RATIO, y = pred),
+            color = "blue", linewidth = 1) +
+  ggplot2::labs(x = "KPRO match ratio", y = "Predicted probability of correct") +
+  ggplot2::theme_minimal() +
+  ggplot2::ggtitle("Comparing KPRO vs Manual ID for Northern bats")
+
+# calculates the match ratio cut-off by inverting the logistic regression
+get_cutoff <- function(p, model) {
+  beta0 <- coef(model)[1]
+  beta1 <- coef(model)[2]
+  (log(p / (1 - p)) - beta0) / beta1
+}
+
+
+# target probabilities for which we want to know the match ratio
+target_probs <- c(0.5, 0.6, 0.7, 0.8, 0.85, 0.9)
+
+#library(clustur)
+# create table with probability column and fill with values from get-cutoff + lost and retained calls + percentage
+loss_table <- data.frame(Probability = target_probs) %>%
+  dplyr::mutate(
+    Cutoff_Ratio = pmin(
+      sapply(Probability, get_cutoff, model = cnil_glm),
+      1),
+    Calls_retained = sapply(Cutoff_Ratio, function(c) 
+      sum(cnil_data$mratio >= c)),
+    Calls_lost = sapply(Cutoff_Ratio, function(c) 
+      sum(cnil_data$mratio < c)),
+    Percent_loss = round(
+      (Calls_lost / nrow(cnil_data)) * 100, 2 ) )
+
+print(loss_table)
+#   Probability Cutoff_Ratio Calls_retained Calls_lost Percent_loss
+# 1        0.50    0.1439409           7750          0         0.00
+# 2        0.60    0.3028697           7748          2         0.03
+# 3        0.70    0.4760534           7692         58         0.75
+# 4        0.80    0.6873220           7004        746         9.63
+# 5        0.85    0.8238466           5984       1766        22.79
+# 6        0.90    1.0000000           3126       4624        59.66
+
+## Looks like a .68 is a good estimate for 80% confidence
+```
+
+## Check agreement manual vs autoid - Nathusius' pipistrelles
+```{r}
+## Check agreement manual vs autoid - Nathusius' pipistrelles 
+summary(DF$newauto)
+summary(DF$manualid)
+summary(DF$site)
+
+PNAT <- DF |> 
+  dplyr::filter(manualid == "PNAT" | newauto == "PNAT") |> 
+           droplevels() 
+
+summary(PNAT)
+## Matches what we expect from the df1
+dim(PNAT)
+# 14664    13
+
+## Check the amount of agreement between autoid and manual id 
+
+#Logistic regression to determine cut-off
+PNAT_data <- DF %>%
+  dplyr::filter(newauto == "PNAT") %>%
+  dplyr::mutate(
+    mratio = as.numeric(MATCH.RATIO),
+    correct = ifelse(manualid == "PNAT", 1, 0)) %>%
+  dplyr::filter(!is.na(MATCH.RATIO))
+
+dim(PNAT_data)
+# 9641    15
+
+ggplot2::ggplot(PNAT_data) + 
+  ggplot2::geom_point(ggplot2::aes(x = MATCH.RATIO, y = correct))
+
+PNAT_glm <- glm(
+  correct ~ MATCH.RATIO,
+  family = binomial,
+  data = PNAT_data)
+
+summary(PNAT_glm)
+# Call:
+# glm(formula = correct ~ MATCH.RATIO, family = binomial, data = PNAT_data)
+# 
+# Coefficients:
+#             Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)  -3.0148     0.1324  -22.78   <2e-16 ***
+# MATCH.RATIO   5.1399     0.1585   32.44   <2e-16 ***
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# (Dispersion parameter for binomial family taken to be 1)
+# 
+#     Null deviance: 9942.8  on 9640  degrees of freedom
+# Residual deviance: 8811.4  on 9639  degrees of freedom
+# AIC: 8815.4
+# 
+# Number of Fisher Scoring iterations: 4
+
+### Now visualize the level of agreement between KPRO and Frode based on this model 
+# Lagny data for kurven
+newdata <- data.frame(MATCH.RATIO = seq(min(PNAT_data$MATCH.RATIO),
+                                   max(PNAT_data$MATCH.RATIO),
+                                   length.out = 200))
+newdata$pred <- predict(PNAT_glm, newdata, type = "response")
+
+# Show the level of agreement between manual id and autoid
+ggplot2::ggplot(PNAT_data, ggplot2::aes(x = MATCH.RATIO, y = correct)) +
+  ggplot2::geom_point(alpha = 0.3) +
+  ggplot2::geom_line(data = newdata, ggplot2::aes(x = MATCH.RATIO, y = pred),
+            color = "blue", linewidth = 1) +
+  ggplot2::labs(x = "KPRO match ratio", y = "Predicted probability of correct") +
+  ggplot2::theme_minimal() +
+  ggplot2::ggtitle("Comparing KPRO vs Manual ID for Nathusius' pipistrelles bats")
+
+# calculates the match ratio cut-off by inverting the logistic regression
+get_cutoff <- function(p, model) {
+  beta0 <- coef(model)[1]
+  beta1 <- coef(model)[2]
+  (log(p / (1 - p)) - beta0) / beta1
+}
+
+
+# target probabilities for which we want to know the match ratio
+target_probs <- c(0.5, 0.6, 0.7, 0.8, 0.85, 0.9)
+
+#library(clustur)
+# create table with probability column and fill with values from get-cutoff + lost and retained calls + percentage
+loss_table <- data.frame(Probability = target_probs) %>%
+  dplyr::mutate(
+    Cutoff_Ratio = pmin(
+      sapply(Probability, get_cutoff, model = PNAT_glm),
+      1),
+    Calls_retained = sapply(Cutoff_Ratio, function(c) 
+      sum(PNAT_data$mratio >= c)),
+    Calls_lost = sapply(Cutoff_Ratio, function(c) 
+      sum(PNAT_data$mratio < c)),
+    Percent_loss = round(
+      (Calls_lost / nrow(PNAT_data)) * 100, 2 ) )
+
+print(loss_table)
+#   Probability Cutoff_Ratio Calls_retained Calls_lost Percent_loss
+# 1        0.50    0.5865509           8920        721         7.48
+# 2        0.60    0.6654373           8389       1252        12.99
+# 3        0.70    0.7513994           7541       2100        21.78
+# 4        0.80    0.8562654           6481       3160        32.78
+# 5        0.85    0.9240313           5203       4438        46.03
+# 6        0.90    1.0000000           3628       6013        62.37
+
+## Looks like a .86 is a good estimate for 80% confidence
+```
+
+
+## Check agreement manual vs autoid - Soprano pipistrelles 
+```{r}
+## Check agreement manual vs autoid - Soprano pipistrelles 
+summary(DF$newauto)
+summary(DF$manualid)
+summary(DF$site)
+
+PPYG <- DF |> 
+  dplyr::filter(manualid == "PPYG" | newauto == "PPYG") |> 
+           droplevels() 
+
+summary(PPYG)
+## Matches what we expect from the df1
+dim(PPYG)
+# 24981    13
+
+## Check the amount of agreement between autoid and manual id 
+
+#Logistic regression to determine cut-off
+PPYG_data <- DF %>%
+  dplyr::filter(newauto == "PPYG") %>%
+  dplyr::mutate(
+    mratio = as.numeric(MATCH.RATIO),
+    correct = ifelse(manualid == "PPYG", 1, 0)) %>%
+  dplyr::filter(!is.na(MATCH.RATIO))
+
+dim(PPYG_data)
+# 11335    15
+
+ggplot2::ggplot(PPYG_data) + 
+  ggplot2::geom_point(ggplot2::aes(x = MATCH.RATIO, y = correct))
+
+PPYG_glm <- glm(
+  correct ~ MATCH.RATIO,
+  family = binomial,
+  data = PPYG_data)
+
+summary(PPYG_glm)
+# Coefficients:
+#             Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)  -4.5433     0.1288  -35.27   <2e-16 ***
+# MATCH.RATIO   6.8660     0.1516   45.30   <2e-16 ***
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# (Dispersion parameter for binomial family taken to be 1)
+# 
+#     Null deviance: 11573.2  on 11334  degrees of freedom
+# Residual deviance:  9094.3  on 11333  degrees of freedom
+# AIC: 9098.3
+# 
+# Number of Fisher Scoring iterations: 4
+
+### Now visualize the level of agreement between KPRO and Frode based on this model 
+# Lagny data for kurven
+newdata <- data.frame(MATCH.RATIO = seq(min(PPYG_data$MATCH.RATIO),
+                                   max(PPYG_data$MATCH.RATIO),
+                                   length.out = 200))
+newdata$pred <- predict(PPYG_glm, newdata, type = "response")
+
+# Show the level of agreement between manual id and autoid
+ggplot2::ggplot(PPYG_data, ggplot2::aes(x = MATCH.RATIO, y = correct)) +
+  ggplot2::geom_point(alpha = 0.3) +
+  ggplot2::geom_line(data = newdata, ggplot2::aes(x = MATCH.RATIO, y = pred),
+            color = "blue", linewidth = 1) +
+  ggplot2::labs(x = "KPRO match ratio", y = "Predicted probability of correct") +
+  ggplot2::theme_minimal() +
+  ggplot2::ggtitle("Comparing KPRO vs Manual ID for Soprano pipistrelles bats")
+
+# calculates the match ratio cut-off by inverting the logistic regression
+get_cutoff <- function(p, model) {
+  beta0 <- coef(model)[1]
+  beta1 <- coef(model)[2]
+  (log(p / (1 - p)) - beta0) / beta1
+}
+
+
+# target probabilities for which we want to know the match ratio
+target_probs <- c(0.5, 0.6, 0.7, 0.8, 0.85, 0.9)
+
+#library(clustur)
+# create table with probability column and fill with values from get-cutoff + lost and retained calls + percentage
+loss_table <- data.frame(Probability = target_probs) %>%
+  dplyr::mutate(
+    Cutoff_Ratio = pmin(
+      sapply(Probability, get_cutoff, model = PPYG_glm),
+      1),
+    Calls_retained = sapply(Cutoff_Ratio, function(c) 
+      sum(PPYG_data$mratio >= c)),
+    Calls_lost = sapply(Cutoff_Ratio, function(c) 
+      sum(PPYG_data$mratio < c)),
+    Percent_loss = round(
+      (Calls_lost / nrow(PPYG_data)) * 100, 2 ) )
+
+print(loss_table)
+#   Probability Cutoff_Ratio Calls_retained Calls_lost Percent_loss
+# 1        0.50    0.6617018           9878       1457        12.85
+# 2        0.60    0.7207554           9390       1945        17.16
+# 3        0.70    0.7851058           8883       2452        21.63
+# 4        0.80    0.8636075           8242       3093        27.29
+# 5        0.85    0.9143363           7703       3632        32.04
+# 6        0.90    0.9817147           6601       4734        41.76
+
+## Looks like a 1is a good estimate for 80% confidence
+```
+
+## Check agreement manual vs autoid - Brown long-eared bats 
+```{r}
+## Check agreement manual vs autoid - Brown long-eared bats 
+summary(DF$newauto)
+summary(DF$manualid)
+summary(DF$site)
+
+PAUR <- DF |> 
+  dplyr::filter(manualid == "PAUR" | newauto == "PAUR") |> 
+           droplevels() 
+
+summary(PAUR)
+## Matches what we expect from the df1
+dim(PAUR)
+# 4130    13
+
+## Check the amount of agreement between autoid and manual id 
+
+#Logistic regression to determine cut-off
+PAUR_data <- DF %>%
+  dplyr::filter(newauto == "PAUR") %>%
+  dplyr::mutate(
+    mratio = as.numeric(MATCH.RATIO),
+    correct = ifelse(manualid == "PAUR", 1, 0)) %>%
+  dplyr::filter(!is.na(MATCH.RATIO))
+
+dim(PAUR_data)
+# 11335    15
+
+ggplot2::ggplot(PAUR_data) + 
+  ggplot2::geom_point(ggplot2::aes(x = MATCH.RATIO, y = correct))
+
+PAUR_glm <- glm(
+  correct ~ MATCH.RATIO,
+  family = binomial,
+  data = PAUR_data)
+
+summary(PAUR_glm)
+# Coefficients:
+#             Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)  -6.7251     0.6614 -10.169  < 2e-16 ***
+# MATCH.RATIO   3.2527     0.7865   4.135 3.54e-05 ***
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# (Dispersion parameter for binomial family taken to be 1)
+# 
+#     Null deviance: 464.60  on 3198  degrees of freedom
+# Residual deviance: 445.94  on 3197  degrees of freedom
+# AIC: 449.94
+# 
+# Number of Fisher Scoring iterations: 7
+
+### Now visualize the level of agreement between KPRO and Frode based on this model 
+# Lagny data for kurven
+newdata <- data.frame(MATCH.RATIO = seq(min(PAUR_data$MATCH.RATIO),
+                                   max(PAUR_data$MATCH.RATIO),
+                                   length.out = 200))
+newdata$pred <- predict(PAUR_glm, newdata, type = "response")
+
+# Show the level of agreement between manual id and autoid
+ggplot2::ggplot(PAUR_data, ggplot2::aes(x = MATCH.RATIO, y = correct)) +
+  ggplot2::geom_point(alpha = 0.3) +
+  ggplot2::geom_line(data = newdata, ggplot2::aes(x = MATCH.RATIO, y = pred),
+            color = "blue", linewidth = 1) +
+  ggplot2::labs(x = "KPRO match ratio", y = "Predicted probability of correct") +
+  ggplot2::theme_minimal() +
+  ggplot2::ggtitle("Comparing KPRO vs Manual ID for Brown long-eared bats")
+
+# calculates the match ratio cut-off by inverting the logistic regression
+get_cutoff <- function(p, model) {
+  beta0 <- coef(model)[1]
+  beta1 <- coef(model)[2]
+  (log(p / (1 - p)) - beta0) / beta1
+}
+
+
+# target probabilities for which we want to know the match ratio
+target_probs <- c(0.5, 0.6, 0.7, 0.8, 0.85, 0.9)
+
+#library(clustur)
+# create table with probability column and fill with values from get-cutoff + lost and retained calls + percentage
+loss_table <- data.frame(Probability = target_probs) %>%
+  dplyr::mutate(
+    Cutoff_Ratio = pmin(
+      sapply(Probability, get_cutoff, model = PAUR_glm),
+      1),
+    Calls_retained = sapply(Cutoff_Ratio, function(c) 
+      sum(PAUR_data$mratio >= c)),
+    Calls_lost = sapply(Cutoff_Ratio, function(c) 
+      sum(PAUR_data$mratio < c)),
+    Percent_loss = round(
+      (Calls_lost / nrow(PAUR_data)) * 100, 2 ) )
+
+print(loss_table)
+#   Probability Cutoff_Ratio Calls_retained Calls_lost Percent_loss
+# 1        0.50            1            667       2532        79.15
+# 2        0.60            1            667       2532        79.15
+# 3        0.70            1            667       2532        79.15
+# 4        0.80            1            667       2532        79.15
+# 5        0.85            1            667       2532        79.15
+# 6        0.90            1            667       2532        79.15
+
+## 
+```
+
+## Check agreement manual vs autoid - Nyctaloids
+```{r}
+## Check agreement manual vs autoid - Nyctaloids (with NNOC)
+summary(DF$newauto)
+summary(DF$manualid)
+summary(DF$site)
+
+## Check the amount of agreement between autoid and manual id 
+
+#Logistic regression to determine cut-off
+NYCT_data <- DF %>%
+  dplyr::filter(newauto %in% c("NNOC", "NYCT")) %>%
+  dplyr::mutate(
+    mratio = as.numeric(MATCH.RATIO),
+    correct = ifelse(manualid %in% c("NYCT", "NNOC", "VMUR") , 1, 0)) %>%
+  dplyr::filter(!is.na(MATCH.RATIO))
+
+dim(NYCT_data)
+# 4356       15
+
+ggplot2::ggplot(NYCT_data) + 
+  ggplot2::geom_point(ggplot2::aes(x = MATCH.RATIO, y = correct))
+
+NYCT_glm <- glm(
+  correct ~ MATCH.RATIO,
+  family = binomial,
+  data = NYCT_data)
+
+summary(NYCT_glm)
+# Coefficients:
+#             Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)  -1.3565     0.1167 -11.622  < 2e-16 ***
+# MATCH.RATIO   1.0358     0.1475   7.021 2.21e-12 ***
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# (Dispersion parameter for binomial family taken to be 1)
+# 
+#     Null deviance: 5692.4  on 4355  degrees of freedom
+# Residual deviance: 5642.1  on 4354  degrees of freedom
+# AIC: 5646.1
+# 
+# Number of Fisher Scoring iterations: 4
+
+### Now visualize the level of agreement between KPRO and Frode based on this model 
+# Lagny data for kurven
+newdata <- data.frame(MATCH.RATIO = seq(min(NYCT_data$MATCH.RATIO),
+                                   max(NYCT_data$MATCH.RATIO),
+                                   length.out = 200))
+newdata$pred <- predict(NYCT_glm, newdata, type = "response")
+
+# Show the level of agreement between manual id and autoid
+ggplot2::ggplot(NYCT_data, ggplot2::aes(x = MATCH.RATIO, y = correct)) +
+  ggplot2::geom_point(alpha = 0.3) +
+  ggplot2::geom_line(data = newdata, ggplot2::aes(x = MATCH.RATIO, y = pred),
+            color = "blue", linewidth = 1) +
+  ggplot2::labs(x = "KPRO match ratio", y = "Predicted probability of correct") +
+  ggplot2::theme_minimal() +
+  ggplot2::ggtitle("Comparing KPRO vs Manual ID for Nyctaloids - with auto Noctules")
+
+# calculates the match ratio cut-off by inverting the logistic regression
+get_cutoff <- function(p, model) {
+  beta0 <- coef(model)[1]
+  beta1 <- coef(model)[2]
+  (log(p / (1 - p)) - beta0) / beta1
+}
+
+
+# target probabilities for which we want to know the match ratio
+target_probs <- c(0.5, 0.6, 0.7, 0.8, 0.85, 0.9)
+
+#library(clustur)
+# create table with probability column and fill with values from get-cutoff + lost and retained calls + percentage
+loss_table <- data.frame(Probability = target_probs) %>%
+  dplyr::mutate(
+    Cutoff_Ratio = pmin(
+      sapply(Probability, get_cutoff, model = NYCT_glm),
+      1),
+    Calls_retained = sapply(Cutoff_Ratio, function(c) 
+      sum(NYCT_data$mratio >= c)),
+    Calls_lost = sapply(Cutoff_Ratio, function(c) 
+      sum(NYCT_data$mratio < c)),
+    Percent_loss = round(
+      (Calls_lost / nrow(NYCT_data)) * 100, 2 ) )
+
+print(loss_table)
+#   Probability Cutoff_Ratio Calls_retained Calls_lost Percent_loss
+# 1        0.50            1           1329       3027        69.49
+# 2        0.60            1           1329       3027        69.49
+# 3        0.70            1           1329       3027        69.49
+# 4        0.80            1           1329       3027        69.49
+# 5        0.85            1           1329       3027        69.49
+# 6        0.90            1           1329       3027        69.49
+
+## Looks like a match ratio of 1 is the bare minimum to have any confidence, and you still lose loads of
+
+
+
+## Check agreement manual vs autoid - Soprano pipistrelles 
+summary(DF$newauto)
+summary(DF$manualid)
+summary(DF$site)
+
+
+## Check the amount of agreement between autoid and manual id 
+
+#Logistic regression to determine cut-off
+NYCT_data <- DF %>%
+  dplyr::filter(newauto %in% c("NYCT")) %>%
+  dplyr::mutate(
+    mratio = as.numeric(MATCH.RATIO),
+    correct = ifelse(manualid %in% c("NYCT", "VMUR") , 1, 0)) %>%
+  dplyr::filter(!is.na(MATCH.RATIO))
+
+dim(NYCT_data)
+# 1016       15
+
+ggplot2::ggplot(NYCT_data) + 
+  ggplot2::geom_point(ggplot2::aes(x = MATCH.RATIO, y = correct))
+
+NYCT_glm <- glm(
+  correct ~ MATCH.RATIO,
+  family = binomial,
+  data = NYCT_data)
+
+summary(NYCT_glm)
+# Coefficients:
+#             Estimate Std. Error z value Pr(>|z|)
+# (Intercept)  0.45433    0.33246   1.367    0.172
+# MATCH.RATIO  0.04649    0.38165   0.122    0.903
+# 
+# (Dispersion parameter for binomial family taken to be 1)
+# 
+#     Null deviance: 1348.3  on 1015  degrees of freedom
+# Residual deviance: 1348.3  on 1014  degrees of freedom
+# AIC: 1352.3
+# 
+# Number of Fisher Scoring iterations: 4
+
+### Now visualize the level of agreement between KPRO and Frode based on this model 
+# Lagny data for kurven
+newdata <- data.frame(MATCH.RATIO = seq(min(NYCT_data$MATCH.RATIO),
+                                   max(NYCT_data$MATCH.RATIO),
+                                   length.out = 200))
+newdata$pred <- predict(NYCT_glm, newdata, type = "response")
+
+# Show the level of agreement between manual id and autoid
+ggplot2::ggplot(NYCT_data, ggplot2::aes(x = MATCH.RATIO, y = correct)) +
+  ggplot2::geom_point(alpha = 0.3) +
+  ggplot2::geom_line(data = newdata, ggplot2::aes(x = MATCH.RATIO, y = pred),
+            color = "blue", linewidth = 1) +
+  ggplot2::labs(x = "KPRO match ratio", y = "Predicted probability of correct") +
+  ggplot2::theme_minimal() +
+  ggplot2::ggtitle("Comparing KPRO vs Manual ID for Nyctaloids - no auto Noctules")
+
+# calculates the match ratio cut-off by inverting the logistic regression
+get_cutoff <- function(p, model) {
+  beta0 <- coef(model)[1]
+  beta1 <- coef(model)[2]
+  (log(p / (1 - p)) - beta0) / beta1
+}
+
+
+# target probabilities for which we want to know the match ratio
+target_probs <- c(0.5, 0.6, 0.7, 0.8, 0.85, 0.9)
+
+#library(clustur)
+# create table with probability column and fill with values from get-cutoff + lost and retained calls + percentage
+loss_table <- data.frame(Probability = target_probs) %>%
+  dplyr::mutate(
+    Cutoff_Ratio = pmin(
+      sapply(Probability, get_cutoff, model = NYCT_glm),
+      1),
+    Calls_retained = sapply(Cutoff_Ratio, function(c) 
+      sum(NYCT_data$mratio >= c)),
+    Calls_lost = sapply(Cutoff_Ratio, function(c) 
+      sum(NYCT_data$mratio < c)),
+    Percent_loss = round(
+      (Calls_lost / nrow(NYCT_data)) * 100, 2 ) )
+
+print(loss_table)
+#   Probability Cutoff_Ratio Calls_retained Calls_lost Percent_loss
+# 1        0.50    -9.772570           1016          0         0.00
+# 2        0.60    -1.051069           1016          0         0.00
+# 3        0.70     1.000000            436        580        57.09
+# 4        0.80     1.000000            436        580        57.09
+# 5        0.85     1.000000            436        580        57.09
+# 6        0.90     1.000000            436        580        57.09
+
+## Looks like a .86 is a good estimate for 80% confidence
+
+
+```
