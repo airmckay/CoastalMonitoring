@@ -73,13 +73,20 @@ ut <- UT |> dplyr::filter(site != "UT-01") |>
   dplyr::mutate(TIME = as.character(TIME),
                 TIME.12 = as.character(TIME.12),
                 manualid = factor(manualid),
+                site = factor(site), 
                 Mid = factor(manualid))
+summary(ut$site)
 names(ut)
 dim(ut)
 levels(ut$Mid)
 ## Need to clean the Manual id columns and get down to just one 
 # 11398    16
 
+
+## We also need the Gismarvik detector from Benedikte!! 
+GI <- read_csv("P:/SW_CoastalMonitoring/Data_analysis_2024/MSc_Theses/Benedikte/KPRO1/ID/ID/CM-46/id.csv")
+## 5050 obs of 44 variables! 
+names(GI)
 
 #########################################################
 # Sara's thesis - Coastal sites in Rogaland 2024 
@@ -187,7 +194,6 @@ summary(jf5$manualid)
 
 #########################################################
 # Utisra dataset
-
 summary(ut)
 summary(ut$Mid)
 summary(ut$manualid)
@@ -241,6 +247,85 @@ names(ut1)
 #  [1] "DATE"        "TIME"        "HOUR"        "DATE.12"     "TIME.12"    
 #  [6] "HOUR.12"     "autoid"      "manualid"    "MATCH.RATIO" "analyst"    
 # [11] "site"        "filename"    "newauto"  
+
+
+#########################################################
+# Gismarvik - Benedikte's thesis
+
+gi <- GI |> 
+  select(c("IN FILE", DATE, TIME, HOUR, 
+           'DATE-12', 'TIME-12', 'HOUR-12', 
+            "AUTO ID", "MATCH RATIO","MANUAL ID*" )) |> 
+  rename(
+  filename = 'IN FILE',
+  DATE.12 = 'DATE-12',
+  TIME.12 = 'TIME-12',
+  HOUR.12 = 'HOUR-12',
+  MATCH.RATIO = "MATCH RATIO",
+  autoid = "AUTO ID",
+  M1 = "MANUAL ID*") |> 
+    mutate(DATE = as.Date(DATE), 
+    DATE.12 = as.Date(DATE.12), 
+    TIME = as.character(TIME), 
+    TIME.12 = as.character(TIME.12),
+    autoid = factor(autoid), 
+    M1 = factor(M1)) 
+
+summary(gi)
+summary(gi$autoid)
+summary(gi$M1)
+
+gi1 <- gi |>  mutate(newauto = 
+    factor(case_when(
+    autoid == "BARBAR" ~ "BBAR",
+    autoid == "EPTNIL" ~ "CNIL",
+    autoid %in% c("MYOBRA", "MYODAU", 
+                  "MYOMYS", "MYONAT") ~ "MYSP", 
+    autoid  ==  "NoID" ~ "NoID",
+    autoid  ==  "Noise" ~ "Noise",
+    autoid  ==  "NYCNOC" ~ "NNOC",
+    autoid  ==  "PIPNAT" ~ "PNAT",
+    autoid  ==  "PIPPYG" ~ "PPYG",
+    autoid  ==  "PLEAUR" ~ "PAUR",
+    autoid  ==  "VESMUR" ~ "NYCT"))) |> 
+  mutate(analyst = factor("Benedikte Oeyen"),
+         site = factor("CM-46")) 
+  
+
+summary(gi1)
+# Now to parse out and clean the manual ids 
+gi2 <- gi1 |> separate_rows(M1, sep = "_") |> 
+  mutate(M1 = factor(M1))
+
+dim(gi1) # 5050   13
+dim(gi2) # 5236   13
+
+summary(gi2$M1)
+
+gi2$mid1 <- factor(gsub("\\.B", "", gi2$M1))
+levels(gi2$mid1)
+
+gi2$mid2 <- factor(gsub("\\.S", "", gi2$mid1))
+levels(gi2$mid2)
+
+gi2$mid3 <- factor(gsub("\\.T", "", gi2$mid2))
+levels(gi2$mid3)
+
+gi2$mid4 <- factor(gsub("ENIL", "CNIL", gi2$mid3))
+levels(gi2$mid4)
+
+gi2$mid5 <- factor(gsub("MYOT", "MYSP", gi2$mid4))
+levels(gi2$mid5)
+
+## Account for multiple bats in each pass 
+gi3 <- gi2 |> dplyr::select(-c(M1, mid1, mid2, mid3, mid4)) |> 
+  rename(manualid = mid5)
+summary(gi3)
+summary(gi3$autoid)
+summary(gi3$manualid)
+dim(gi3)
+# 5236   13
+# looking good!
 
 #########################################################
 # Sara's thesis - Coastal sites in Rogaland 2024 
@@ -323,7 +408,7 @@ sk4 <- sk3 |> dplyr::mutate(
     TRUE ~ manualid))) 
 levels(sk4$mid)
 
-## Remove the behavior tags
+## Remove the behavior tags, clean taxa names 
 sk4$mid1 <- factor(gsub("\\.B", "", sk4$mid))
 levels(sk4$mid1)
 
@@ -374,6 +459,7 @@ names(jf4)
 
 ## Sweet! Now we combine 
 
+# SK + Utsira 
 temp <- dplyr::full_join(ut1, sk7)
 dim(temp)
 # 33775    13
@@ -382,15 +468,21 @@ nrow(ut1) + nrow(sk7)
 
 summary(temp)
 
-temp1 <- dplyr::full_join(temp, jf5)
+# JF + Gismarvik 
+temp1 <- dplyr::full_join(gi3, jf5)
 dim(temp1)
-nrow(temp) + nrow(jf4)
-
+# 55781    13
+nrow(gi3) + nrow(jf4)
+# 55781
 # checks out, good!
 
-summary(temp1)
 
-DF <- temp1 |> 
+temp2 <- full_join(temp, temp1)
+dim(temp2)
+nrow(temp) + nrow(temp1)
+summary(temp2)
+
+DF <- temp2 |> 
   dplyr::mutate(
     autoid = factor(autoid),
     manualid = factor(manualid), 
@@ -404,10 +496,10 @@ summary(DF$autoid)
 summary(DF$newauto)
 summary(DF$manualid)
 dim(DF)
-# 84320    13
+# 89556    13
 ## Looking good! SEND IT!
 # write.csv(DF, file = file.path(output_today, "CM_manualIDs_allavailable_subsets.csv"))
-# 10.11.2026
+# 11.11.2026 - added Gismarvik CM-46! 
 
 ```
 
