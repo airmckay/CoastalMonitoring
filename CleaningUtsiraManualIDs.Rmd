@@ -185,7 +185,7 @@ summary(temp6)
 ```{r}
 DF1 <- DF |> filter (Mid != "Noise") |> 
   dplyr::mutate(taxa = factor(case_when(
-    Mid == "CNIL" ~ "C. nilssonii",
+    Mid == "CNIL" ~ "E. nilssonii",
     Mid == "NNOC" ~ "N. noctula", 
     Mid == "NoID" ~ "Unknown bat", 
     Mid == "NYCT" ~ "Nyctaloid", 
@@ -224,13 +224,14 @@ summary(DF1)
 
 DF2 <- DF1  |> 
   dplyr::mutate(taxa = factor(case_when(
-    Mid == "CNIL" ~ "C. nilssonii",
-    Mid == "NNOC" ~ "N. noctula", 
-    Mid == "NoID" ~ "C. nilssonii", 
+    Mid == "CNIL" ~ "Northern bat",
+    Mid == "NNOC" ~ "Common noctule", 
+    Mid == "NoID" ~ "Northern bat", 
     Mid == "NYCT" ~ "Nyctaloid", 
-    Mid == "PNAT" ~ "P. nathusii", 
-    Mid == "PPYG" ~ "P. pygmaeus"))) |> droplevels()
-
+    Mid == "PNAT" ~ "Nathusius' pipistrelle", 
+    Mid == "PPYG" ~ "Soprano pipistrelle"))) |> droplevels() |> 
+  mutate(month = month(DATE))
+ 
 
 ## Table overview 
 # Optional: drop rows with missing site or taxon
@@ -253,9 +254,10 @@ wide
 # 5 Nyctaloid          0       6      37
 
 
-
 ############ PNAT 
-library(lubridate)
+#install.packages("ggh4x")
+# library(ggh4x) 
+
 DF2$jnight <- yday(DF2$night)
 pnat <- DF2 |> filter(Mid == "PNAT") |> droplevels()
 
@@ -265,16 +267,18 @@ pnat1 <- pnat %>%
 
 ggplot(pnat1, aes(x = jnight, y = n, colour = site)) +
   geom_point(size = 4) +
-  labs(x = "", y = "Bat passes per night", colour = "Site",
-       title = expression(italic("Pipistrellus nathusii"))) +
+  labs(x = "", y = "Bat passes per night", colour = "Site") + 
+scale_x_date(date_breaks = "30 days", date_labels = "%e %B") + 
   theme_minimal(base_size = 14) +
   facet_wrap(~ site, nrow = 3) +
-  scale_colour_manual(values = c("CM-01" = "#28628c",
-                                 "CM-02" = "#28628c",
-                                 "UT-01" = "#323232")) + 
+  scale_colour_manual(values = c("CM-01" = "#323232",
+                                 "CM-02" = "#323232",
+                                 "UT-01" = "darkgray")) + 
  guides(color = "none")
 
+ggsave(path = "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway", filename = "figure9.tiff", width = 8, height = 7, device='tiff', dpi=600) 
 
+ggsave(path = "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway", filename = "figure9.png",  width = 8, height = 7, device='png', dpi=600) 
 ############ CNIL 
 
 cnil <- DF2 |> filter(Mid == "CNIL") |> droplevels()
@@ -352,5 +356,65 @@ ggplot(NYCT1, aes(x = jnight, y = n, colour = site)) +
                                  "CM-02" = "#28628c",
                                  "UT-01" = "#323232")) + 
  guides(color = "none")
+```
+
+## Map of the detector locations
+
+```{r}
+library(tidyverse)
+library(mapview)
+library(sf)
+library(sp)
+library(maps)
+library(leaflet)
+library(leaflegend)
+library(ggmap)
+library(spatstat)
+
+# Locations of the three different detectors
+# CM-01 = 59.30677, 04.87109
+# CM-02 = 59.31384, 04.88367
+# UT-01 = 59.313025, 04.905234
+
+
+site <- c("CM-01", "CM-02", "UT-01")
+sitetype <- c("CM", "CM", "Noctur")
+latitude <- c("59.30677", "59.31384", "59.313025")
+longitude <- c("04.87109", "04.88367", "04.905234")
+
+ldf <- data.frame(site = site, latitude = latitude, longitude = longitude, sitetype = sitetype) 
+ldf <- ldf |> mutate(site = factor(site), sitetype = factor(sitetype))
+
+summary(ldf)
+
+tpt <- st_as_sf(ldf, coords = c("longitude","latitude"), crs = 4326)
+tpt
+
+plot(tpt)
+mapview(tpt)
+mapview(tpt, zcol = "site", alpha = 1, 
+        col.regions = c("black", "black", "darkgray"))
+
+pal <- colorFactor(c("black", "black", "darkgray"), domain = tpt$site)
+
+m <- leaflet(tpt) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    radius = 8,            # <- increase this for larger points (pixels)
+    fillOpacity = 0.8,
+    color = "black",
+    fillColor = ~pal(site),  # color by group (optional)
+    stroke = TRUE
+  ) %>% 
+  setView(lng = 4.8848248, lat = 59.3061305, zoom = 13.5) |> 
+  addScaleBar(position = "bottomright") 
+  
+m
+
+mapshot(m, file = "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Utsira_sites_map_hd.png",
+        remove_controls = c("zoomControl", "layersControl", "homeButton"))  # viewport height in pixels
+
+
+
 ```
 
