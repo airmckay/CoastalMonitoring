@@ -265,20 +265,16 @@ pnat1 <- pnat %>%
   group_by(site, jnight) %>%
   summarise(n = n(), .groups = "drop")
 
-ggplot(pnat1, aes(x = jnight, y = n, colour = site)) +
-  geom_point(size = 4) +
-  labs(x = "", y = "Bat passes per night", colour = "Site") + 
+ggplot(pnat1, aes(x = jnight, y = n))+
+  geom_point(size = 4, colour = "#01665E", alpha = 0.7) +
+  labs(x = "", y = "Bat passes per night") + 
 scale_x_date(date_breaks = "30 days", date_labels = "%e %B") + 
   theme_minimal(base_size = 14) +
-  facet_wrap(~ site, nrow = 3) +
-  scale_colour_manual(values = c("CM-01" = "#323232",
-                                 "CM-02" = "#323232",
-                                 "UT-01" = "darkgray")) + 
- guides(color = "none")
+  facet_wrap(~ site, nrow = 3) 
 
-ggsave(path = "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway", filename = "figure9.tiff", width = 8, height = 7, device='tiff', dpi=600) 
-
-ggsave(path = "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway", filename = "figure9.png",  width = 8, height = 7, device='png', dpi=600) 
+ggsave(path = output_today, filename = "figure9.tiff", width = 8, height = 7, device='tiff', dpi=600) 
+output_today
+ggsave(path = output_today, filename = "figure9.png",  width = 8, height = 7, device='png', dpi=600) 
 ############ CNIL 
 
 cnil <- DF2 |> filter(Mid == "CNIL") |> droplevels()
@@ -395,23 +391,27 @@ mapview(tpt)
 mapview(tpt, zcol = "site", alpha = 1, 
         col.regions = c("black", "black", "darkgray"))
 
-pal <- colorFactor(c("black", "black", "darkgray"), domain = tpt$site)
+pal <- colorFactor(c("black", "black", "black"), domain = tpt$site)
 
 m <- leaflet(tpt) %>%
   addTiles() %>%
   addCircleMarkers(
-    radius = 8,            # <- increase this for larger points (pixels)
+    radius = 15,            # <- increase this for larger points (pixels)
     fillOpacity = 0.8,
     color = "black",
-    fillColor = ~pal(site),  # color by group (optional)
-    stroke = TRUE
+    fillColor = "black", 
+    stroke = TRUE,
+    popup = ~site,
+    label = ~site,
+    labelOptions = labelOptions(noHide = TRUE, direction = "top", textsize = "16px")
   ) %>% 
   setView(lng = 4.8848248, lat = 59.3061305, zoom = 13.5) |> 
   addScaleBar(position = "bottomright") 
   
 m
+#      labelOptions = labelOptions(noHide = TRUE, direction = "top")
 
-mapshot(m, file = "C:/Users/apmc/OneDrive - Norwegian University of Life Sciences/BatLab Norway/Projects/CoastalMonitoring/Utsira_sites_map_hd.png",
+mapshot(m, file = file.path(output_today, "Utsira_sites_map_hd_v2.png"),
         remove_controls = c("zoomControl", "layersControl", "homeButton"))  # viewport height in pixels
 
 
